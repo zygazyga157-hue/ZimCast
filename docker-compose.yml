@@ -1,0 +1,71 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/zimcast?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
+      - NEXTAUTH_URL=http://localhost:3000
+      - AUTH_TRUST_HOST=true
+      - MEDIAMTX_API_URL=http://mediamtx:9997
+      - STREAM_BASE_URL=http://mediamtx:8888
+      - STREAM_TOKEN_SECRET=${STREAM_TOKEN_SECRET:-dev-stream-secret-change-in-production}
+      - PAYNOW_INTEGRATION_ID=${PAYNOW_INTEGRATION_ID:-}
+      - PAYNOW_INTEGRATION_KEY=${PAYNOW_INTEGRATION_KEY:-}
+      - PAYNOW_RESULT_URL=http://localhost:3000/api/payments/webhook
+      - PAYNOW_RETURN_URL=http://localhost:3000/payment/success
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=zimcast
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+  mediamtx:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mediamtx
+    ports:
+      - "8888:8888"  # HLS
+      - "9000:9000"  # SRT
+      - "9997:9997"  # Control API
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - recordings:/recordings
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  recordings:

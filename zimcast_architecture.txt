@@ -1,0 +1,278 @@
+ZimCast Streaming Platform – Technical Architecture Document
+
+This document summarizes the full technical architecture and
+requirements discussed for the ZimCast platform. The system integrates
+live broadcast feeds from the Zimbabwe Broadcasting Corporation (ZBC),
+distributes them via a scalable streaming infrastructure, and provides
+both free-to-air television and pay‑per‑view sports matches.
+
+------------------------------------------------------------------------
+
+1.  SYSTEM OVERVIEW
+
+ZimCast is a streaming platform with two operating modes:
+
+Mode A – Public Broadcast Free streaming of ZTV with advertisement
+support.
+
+Mode B – Premium Sports Pay‑Per‑View (PPV) access to live football
+matches and sports events.
+
+Primary technology stack:
+
+Frontend - Next.js - TypeScript - Tailwind / Shadcn UI - HLS.js video
+player
+
+Backend - Next.js API - Prisma ORM - PostgreSQL database - Redis caching
+
+Streaming Infrastructure - MediaMTX media server - FFmpeg transcoding
+workers
+
+Distribution - Cloudflare CDN
+
+Payments - EcoCash - PayPal - Paynow (recommended aggregator)
+
+------------------------------------------------------------------------
+
+2.  BROADCAST SIGNAL ACQUISITION
+
+The broadcast feed is supplied by the Zimbabwe Broadcasting Corporation
+(ZBC).
+
+Preferred integration method: SRT (Secure Reliable Transport) stream.
+
+Example stream format:
+
+srt://zbc-stream.zw:9000?streamid=ztv_main
+
+This stream originates from the ZBC studio encoder and is pushed to the
+ZimCast ingest server.
+
+Signal flow:
+
+ZBC Studio Program Output Encoder SRT Stream MediaMTX Server HLS
+Packaging Cloudflare CDN ZimCast App End Users
+
+Recommended encoding specifications:
+
+Video Codec: H264 Resolution: 1920x1080 Frame Rate: 25fps Bitrate: 6
+Mbps Audio: AAC 128 kbps
+
+Internet requirements at the studio:
+
+Minimum upload bandwidth: 10 Mbps Recommended upload bandwidth: 20 Mbps
+Primary and backup ISP connections
+
+------------------------------------------------------------------------
+
+3.  STREAM SEPARATION STRUCTURE
+
+Two categories of streams exist:
+
+Free Channel - ZTV main broadcast
+
+Premium Sports - Individual match streams
+
+MediaMTX configuration example:
+
+paths: ztv: source: srt://zbc-stream.zw:9000?streamid=ztv_main
+
+match_dynamos_caps: source:
+srt://zbc-stream.zw:9000?streamid=dynamos_caps
+
+match_highlanders_bullets: source:
+srt://zbc-stream.zw:9000?streamid=highlanders_bullets
+
+Resulting playback URLs:
+
+Free TV: https://stream.zimcast.tv/ztv/index.m3u8
+
+Sports Match: https://stream.zimcast.tv/match_dynamos_caps/index.m3u8
+
+------------------------------------------------------------------------
+
+4.  STREAM DISTRIBUTION ARCHITECTURE
+
+MediaMTX receives the broadcast feed and converts it into HLS format.
+
+Cloudflare CDN distributes the video segments globally.
+
+Stream structure:
+
+index.m3u8 segment1.ts segment2.ts segment3.ts
+
+Cloudflare caches the video segments so that thousands of viewers can
+access them without overloading the origin streaming server.
+
+Domain architecture example:
+
+app.zimcast.tv → Web application api.zimcast.tv → Backend services
+stream.zimcast.tv → CDN distributed streams origin.zimcast.tv → MediaMTX
+server
+
+------------------------------------------------------------------------
+
+5.  USER ACCESS CONTROL
+
+Free channel access rules:
+
+-   User must have a registered Smart Profile
+-   Stream is advertisement supported
+-   No payment required
+
+Sports PPV access rules:
+
+-   User must purchase a match pass
+-   Stream access granted after payment verification
+-   Tokenized playback URL issued
+
+Example secure stream URL:
+
+https://stream.zimcast.tv/match1/index.m3u8?token=abc123
+
+Token contains:
+
+-   user ID
+-   match ID
+-   expiration timestamp
+
+------------------------------------------------------------------------
+
+6.  DATABASE STRUCTURE
+
+Users table
+
+Fields: - id - email - password - age - gender - city - country -
+createdAt
+
+Matches table
+
+Fields: - id - homeTeam - awayTeam - kickoff time - price - streamKey
+
+MatchPass table
+
+Fields: - id - userId - matchId - expiresAt
+
+Payments table
+
+Fields: - id - userId - matchId - amount - provider - payment status -
+transaction reference - createdAt
+
+------------------------------------------------------------------------
+
+7.  PAYMENT SYSTEM
+
+Supported payment methods:
+
+Local Payments EcoCash mobile money
+
+International Payments PayPal
+
+Recommended Aggregator Paynow
+
+Payment flow:
+
+User selects match Click “Unlock Match” Choose payment method Payment
+confirmation received via webhook MatchPass created in database User
+receives access token Stream unlocked
+
+------------------------------------------------------------------------
+
+8.  LOW DATA MODE
+
+Zimbabwe has high mobile data costs, so the platform must support low
+bitrate streaming.
+
+Recommended adaptive bitrates:
+
+1080p – 5 Mbps 720p – 3 Mbps 480p – 1.5 Mbps 360p – 700 kbps
+
+UI toggle:
+
+Auto HD Data Saver
+
+Data Saver forces playback at 360p.
+
+------------------------------------------------------------------------
+
+9.  USER INTERFACE STRUCTURE
+
+Home Screen
+
+Live TV Section Watch ZTV
+
+Sports Section Live matches Upcoming fixtures Unlock match buttons
+
+Video Player Features
+
+Full screen playback Quality selector Data saver toggle Match chat
+(optional)
+
+------------------------------------------------------------------------
+
+10. SECURITY AND ANTI PIRACY
+
+Protection mechanisms:
+
+Signed stream URLs Short token expiration Cloudflare WAF Rate limiting
+IP monitoring
+
+Stream links should never be directly exposed publicly.
+
+------------------------------------------------------------------------
+
+11. RECORDING AND REPLAY
+
+MediaMTX can automatically record live streams.
+
+Example recording path:
+
+/recordings/{stream}/{date}.mp4
+
+This enables:
+
+Match replays Highlight generation Catch‑up television
+
+------------------------------------------------------------------------
+
+12. INFRASTRUCTURE SCALING
+
+Typical large match scenario:
+
+50,000 concurrent viewers
+
+Without CDN: Origin server overload.
+
+With Cloudflare:
+
+MediaMTX server provides stream segments once. Cloudflare distributes
+cached segments globally.
+
+Example infrastructure:
+
+AWS EC2 MediaMTX Server Cloudflare CDN PostgreSQL Database Redis Cache
+Next.js Application Server
+
+------------------------------------------------------------------------
+
+13. CLIENT RESPONSIBILITIES
+
+The client and ZBC must provide:
+
+SRT live stream endpoint Video encoding specifications Primary and
+backup streams Dedicated upstream bandwidth Stream authentication
+credentials Legal streaming rights for broadcast and sports
+
+------------------------------------------------------------------------
+
+14. DEVELOPER RESPONSIBILITIES
+
+The developer builds and maintains:
+
+Streaming ingestion server MediaMTX configuration Next.js platform
+Authentication system Payment integrations Ad system Video player
+Cloudflare integration Monitoring and analytics
+
+------------------------------------------------------------------------
+
+End of Document

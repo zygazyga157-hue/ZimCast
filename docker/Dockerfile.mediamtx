@@ -1,0 +1,21 @@
+# Use the official MediaMTX image matching our pinned v1.17.0 binary.
+# In production (Linux container) the official image is used;
+# the windows binary is for local dev only.
+FROM bluenviron/mediamtx:1.17.0
+
+# Install FFmpeg for transcoding
+RUN apk add --no-cache ffmpeg bash
+
+# Copy ZimCast-specific configuration
+COPY mediamtx/mediamtx.yml /mediamtx.yml
+
+# Copy transcoding script
+COPY scripts/transcode.sh /usr/local/bin/transcode.sh
+RUN chmod +x /usr/local/bin/transcode.sh
+
+# Create recordings directory
+RUN mkdir -p /recordings
+
+EXPOSE 8888 9000 9997
+
+ENTRYPOINT ["/mediamtx"]

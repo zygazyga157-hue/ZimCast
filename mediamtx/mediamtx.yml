@@ -1,0 +1,142 @@
+###############################################
+# ZimCast – MediaMTX v1.17.0 Configuration
+###############################################
+
+###############################################
+# Logging
+###############################################
+logLevel: info
+logDestinations: [stdout]
+logStructured: false
+
+###############################################
+# Timeouts
+###############################################
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+udpMaxPayloadSize: 1452
+
+###############################################
+# Authentication
+# Use HTTP method so every read/publish request
+# is validated against the ZimCast token endpoint.
+###############################################
+authMethod: http
+authHTTPAddress: http://127.0.0.1:3000/api/streams/auth-hook
+# Exclude API/metrics from auth (localhost-only anyway)
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+###############################################
+# Control API
+# Enables dynamic path creation for match streams.
+###############################################
+api: true
+apiAddress: :9997
+
+###############################################
+# Metrics (Prometheus-compatible)
+###############################################
+metrics: false
+metricsAddress: :9998
+
+###############################################
+# RTSP – off (not needed for ZimCast)
+###############################################
+rtsp: false
+
+###############################################
+# RTMP – off (not needed for ZimCast)
+###############################################
+rtmp: false
+
+###############################################
+# WebRTC – off (HLS is the delivery protocol)
+###############################################
+webrtc: false
+
+###############################################
+# SRT – ingest from ZBC encoder
+###############################################
+srt: true
+srtAddress: :9000
+
+###############################################
+# HLS – delivery to viewers
+###############################################
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsAllowOrigins: ['*']
+# Generate HLS immediately on stream start, not on first request.
+# This removes the "first viewer delay".
+hlsAlwaysRemux: true
+# Low-latency HLS for sub-2-second latency
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsSegmentMaxSize: 50M
+# Close muxer 60s after last reader disconnects
+hlsMuxerCloseAfter: 60s
+
+###############################################
+# Default path settings
+###############################################
+pathDefaults:
+  # Record all streams to disk
+  record: true
+  recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  recordPartDuration: 1s
+  recordSegmentDuration: 4h
+  # Keep recordings for 7 days
+  recordDeleteAfter: 168h
+
+  # Allow a new publisher to take over a stale connection
+  overridePublisher: true
+
+###############################################
+# Path definitions
+###############################################
+paths:
+
+  # ─── Free ZTV channel ───────────────────────
+  # Pulled from ZBC encoder via SRT.
+  # Source is on-demand: connection to ZBC is only
+  # opened when at least one viewer is watching.
+  ztv:
+    source: srt://zbc-stream.zw:9000?streamid=ztv_main
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
+  # ─── Sports match streams ───────────────────
+  # Pre-configured named paths for known fixtures.
+  # Additional paths are added at runtime via the
+  # MediaMTX Control API (POST /v3/config/paths/add).
+
+  match_dynamos_caps:
+    source: srt://zbc-stream.zw:9000?streamid=dynamos_caps
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
+  match_highlanders_bullets:
+    source: srt://zbc-stream.zw:9000?streamid=highlanders_bullets
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
+  # ─── Catch-all for dynamically added matches ─
+  # Any path starting with "match_" that isn't
+  # explicitly listed above will be accepted as a
+  # publisher-push stream (no SRT source pull).
+  ~^match_:
+    source: publisher
+
+  # ─── Catch-all for everything else ──────────
+  all_others:
