@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyStreamToken } from "@/lib/tokens";
+import { handleApiError } from "@/lib/errors";
 
 /**
  * MediaMTX external authentication hook.
@@ -47,7 +48,6 @@ export async function POST(req: NextRequest) {
     // Allow other actions by default
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Stream auth hook error:", error);
-    return NextResponse.json({ error: "Auth hook error" }, { status: 500 });
+    return handleApiError(error, "Stream auth hook error");
   }
 }

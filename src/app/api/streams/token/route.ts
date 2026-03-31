@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateStreamToken } from "@/lib/tokens";
+import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -54,10 +55,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ token, streamUrl });
   } catch (error) {
-    console.error("Stream token error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Stream token error");
   }
 }

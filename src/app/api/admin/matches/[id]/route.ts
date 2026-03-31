@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
+import { handleApiError } from "@/lib/errors";
 
 export async function PATCH(
   req: NextRequest,
@@ -39,10 +40,6 @@ export async function PATCH(
 
     return NextResponse.json(match);
   } catch (error) {
-    console.error("Update match error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Update match error");
   }
 }

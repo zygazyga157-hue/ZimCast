@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pollPaynowTransaction, isPaynowPaid } from "@/lib/paynow";
+import { handleApiError } from "@/lib/errors";
 
 /**
  * GET /api/payments/poll/[id]
@@ -106,7 +107,6 @@ export async function GET(
 
     return NextResponse.json({ status: "PENDING", hasAccess: false });
   } catch (error) {
-    console.error("Payment poll error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "Payment poll error");
   }
 }

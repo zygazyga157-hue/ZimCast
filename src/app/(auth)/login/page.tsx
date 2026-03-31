@@ -1,22 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "invalid-token") {
+      toast.error("Invalid or expired verification link. Please request a new one from your profile.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,18 +49,13 @@ export default function LoginPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="w-full max-w-sm"
     >
-      <div className="mb-8 text-center">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <div className="gradient-accent flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-white">
-            Z
-          </div>
-        </Link>
-        <h1 className="mt-6 text-2xl font-bold">Welcome back</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Welcome back</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Sign in to access your streams
         </p>
@@ -78,7 +82,15 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative">
             <Input
               id="password"
@@ -120,6 +132,10 @@ export default function LoginPage() {
         >
           Create one
         </Link>
+      </p>
+
+      <p className="mt-8 text-center text-xs text-muted-foreground/60">
+        Join 10,000+ Zimbabweans already streaming on ZimCast
       </p>
     </motion.div>
   );

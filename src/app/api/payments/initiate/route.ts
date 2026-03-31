@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { initiatePaynowPayment, initiatePaynowMobile } from "@/lib/paynow";
+import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -125,10 +126,6 @@ export async function POST(req: Request) {
       pollUrl: paynowResponse.pollUrl ?? null,
     });
   } catch (error) {
-    console.error("Payment initiation error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Payment initiation error");
   }
 }

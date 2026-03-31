@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { handleApiError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -27,10 +28,6 @@ export async function GET() {
 
     return NextResponse.json(passes);
   } catch (error) {
-    console.error("Passes fetch error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Passes fetch error");
   }
 }

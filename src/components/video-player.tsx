@@ -10,6 +10,7 @@ interface VideoPlayerProps {
   type?: string;
   autoplay?: boolean;
   poster?: string;
+  onReady?: (player: Player) => void;
 }
 
 export function VideoPlayer({
@@ -17,6 +18,7 @@ export function VideoPlayer({
   type = "application/x-mpegURL",
   autoplay = false,
   poster,
+  onReady,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -43,6 +45,7 @@ export function VideoPlayer({
     });
 
     playerRef.current = player;
+    onReady?.(player);
 
     return () => {
       if (playerRef.current && !playerRef.current.isDisposed()) {
@@ -50,7 +53,7 @@ export function VideoPlayer({
         playerRef.current = null;
       }
     };
-  }, [src, type, autoplay, poster]);
+  }, [src, type, autoplay, poster, onReady]);
 
   return (
     <div data-vjs-player className="overflow-hidden rounded-xl">
@@ -58,3 +61,5 @@ export function VideoPlayer({
     </div>
   );
 }
+
+export default VideoPlayer;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { generateStreamToken } from "@/lib/tokens";
+import { handleApiError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -15,10 +16,6 @@ export async function GET() {
 
     return NextResponse.json({ token, streamUrl });
   } catch (error) {
-    console.error("ZTV token error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "ZTV token error");
   }
 }

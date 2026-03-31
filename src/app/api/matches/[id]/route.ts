@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { handleApiError } from "@/lib/errors";
 
 export async function GET(
   _req: NextRequest,
@@ -27,10 +28,6 @@ export async function GET(
 
     return NextResponse.json(match);
   } catch (error) {
-    console.error("Match detail error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Match detail error");
   }
 }

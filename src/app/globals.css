@@ -85,3 +85,119 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #3A3A3A;
 }
+
+/* Safe area padding for notch / gesture-bar phones */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Auth page animated glow orbs */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+@keyframes float-medium {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, -30px) scale(1.15); }
+}
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.auth-orb-1 {
+  width: 300px;
+  height: 300px;
+  background: #FF416C;
+  top: 10%;
+  left: 20%;
+  animation: float-slow 12s ease-in-out infinite;
+}
+.auth-orb-2 {
+  width: 250px;
+  height: 250px;
+  background: #FF4B2B;
+  bottom: 20%;
+  right: 15%;
+  animation: float-medium 10s ease-in-out infinite;
+}
+.auth-orb-3 {
+  width: 200px;
+  height: 200px;
+  background: #FF416C;
+  bottom: 10%;
+  left: 10%;
+  animation: float-slow 14s ease-in-out infinite reverse;
+}
+
+/* Landing page hero animated background */
+@keyframes hero-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero-bg {
+  background: linear-gradient(-45deg, #0B0B0B, #1a0a12, #0B0B0B, #120a1a);
+  background-size: 400% 400%;
+  animation: hero-gradient 15s ease infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.05); }
+}
+.hero-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* Off-air test pattern */
+@keyframes off-air-static {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 100px; }
+}
+@keyframes off-air-scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes off-air-bars {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+}
+@keyframes off-air-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+.off-air-bg {
+  background:
+    repeating-conic-gradient(#1A1A1A 0% 25%, #111 0% 50%) 0 0 / 4px 4px;
+  animation: off-air-static 0.5s linear infinite;
+}
+.off-air-scanline {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 65, 108, 0.04) 45%,
+    rgba(255, 65, 108, 0.08) 50%,
+    rgba(255, 65, 108, 0.04) 55%,
+    transparent 100%
+  );
+  animation: off-air-scanline 6s linear infinite;
+}
+.off-air-bars {
+  background: linear-gradient(
+    90deg,
+    #fff 0% 14.28%,
+    #ff0 14.28% 28.57%,
+    #0ff 28.57% 42.85%,
+    #0f0 42.85% 57.14%,
+    #f0f 57.14% 71.42%,
+    #f00 71.42% 85.71%,
+    #00f 85.71% 100%
+  );
+  animation: off-air-bars 3s ease-in-out infinite;
+}
+.off-air-text {
+  animation: off-air-pulse 3s ease-in-out infinite;
+}

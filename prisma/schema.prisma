@@ -23,21 +23,51 @@ enum PaymentStatus {
   FAILED
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  age       Int?
-  gender    String?
-  city      String?
-  country   String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum ProgramCategory {
+  NEWS
+  SPORTS
+  ENTERTAINMENT
+  MUSIC
+  DOCUMENTARY
+  OTHER
+}
 
-  passes   MatchPass[]
-  payments Payment[]
+enum ViewAction {
+  WATCH
+  SKIP
+  CLICK
+  LIKE
+  SEARCH
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  password           String
+  name               String?
+  phone              String?   @unique
+  dateOfBirth        DateTime?
+  gender             String?
+  city               String?
+  country            String?
+  avatarUrl          String?
+  role               Role      @default(USER)
+  emailVerified      Boolean   @default(false)
+  verifyToken        String?
+  verifyTokenExpiry  DateTime?
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  interests          String[]  @default([])
+  language           String    @default("English")
+  notificationPrefs  Json?
+  lastLoginAt        DateTime?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  passes             MatchPass[]
+  payments           Payment[]
+  viewingActivities  ViewingActivity[]
 
   @@map("users")
 }
@@ -53,8 +83,10 @@ model Match {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  passes   MatchPass[]
-  payments Payment[]
+  passes             MatchPass[]
+  payments           Payment[]
+  programs           Program[]
+  viewingActivities  ViewingActivity[]
 
   @@map("matches")
 }
@@ -89,4 +121,45 @@ model Payment {
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model Program {
+  id          String          @id @default(cuid())
+  channel     String          @default("ZBCTV")
+  title       String
+  description String?
+  category    ProgramCategory @default(OTHER)
+  startTime   DateTime
+  endTime     DateTime
+  isLive      Boolean         @default(false)
+  matchId     String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  match             Match?            @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  viewingActivities ViewingActivity[]
+
+  @@index([startTime, endTime])
+  @@index([channel, startTime])
+  @@map("programs")
+}
+
+model ViewingActivity {
+  id            String      @id @default(cuid())
+  userId        String
+  programId     String?
+  matchId       String?
+  action        ViewAction  @default(WATCH)
+  watchDuration Int         @default(0)
+  sessionStart  DateTime    @default(now())
+  sessionEnd    DateTime?
+  createdAt     DateTime    @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  match   Match?   @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, action])
+  @@map("viewing_activities")
 }

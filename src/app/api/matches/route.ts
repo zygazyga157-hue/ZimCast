@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
+import { handleApiError } from "@/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -40,10 +41,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(matches);
   } catch (error) {
-    console.error("Matches list error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Matches list error");
   }
 }

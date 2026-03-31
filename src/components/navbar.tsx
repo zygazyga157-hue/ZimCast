@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User, LogOut, Tv, Trophy, Home } from "lucide-react";
+import { motion } from "framer-motion";
+import { User, LogOut, Tv, Trophy, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,7 +24,6 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -41,7 +39,10 @@ export function Navbar() {
         {/* Desktop Nav */}
         <div className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive =
+              link.href === "/"
+                ? pathname === "/"
+                : pathname === link.href || pathname.startsWith(link.href + "/");
             return (
               <Link
                 key={link.href}
@@ -106,83 +107,21 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden gap-2 sm:flex">
+            <div className="flex gap-2">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/login">Sign In</Link>
               </Button>
               <Button
                 size="sm"
-                className="gradient-accent border-0 text-white"
+                className="gradient-accent border-0 text-white hidden sm:inline-flex"
                 asChild
               >
                 <Link href="/register">Get Started</Link>
               </Button>
             </div>
           )}
-
-          {/* Mobile menu toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
         </div>
       </div>
-
-      {/* Mobile Nav */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-border md:hidden"
-          >
-            <div className="space-y-1 px-4 pb-4 pt-2">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    {link.label}
-                  </Link>
-                );
-              })}
-              {!session?.user && (
-                <div className="flex gap-2 pt-2">
-                  <Button variant="ghost" size="sm" className="flex-1" asChild>
-                    <Link href="/login">Sign In</Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="gradient-accent flex-1 border-0 text-white"
-                    asChild
-                  >
-                    <Link href="/register">Get Started</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </nav>
   );
 }

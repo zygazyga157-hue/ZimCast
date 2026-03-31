@@ -19,7 +19,7 @@ export default auth((req) => {
   ];
 
   const isPublic = publicPaths.some((p) =>
-    p === "/" ? pathname === "/" : pathname.startsWith(p)
+    p === "/" ? pathname === "/" : pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?")
   );
   if (isPublic) return NextResponse.next();
 
@@ -28,7 +28,9 @@ export default auth((req) => {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login", req.url));
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Admin routes
@@ -40,5 +42,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.ico$).*)"],
 };

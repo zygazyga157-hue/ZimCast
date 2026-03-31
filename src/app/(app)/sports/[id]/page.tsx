@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PageTransition } from "@/components/page-transition";
+import { api, showApiError } from "@/lib/api";
 
 interface Match {
   id: string;
@@ -54,22 +55,22 @@ export default function MatchDetailPage({
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/matches/${id}`).then((r) => r.json()),
+      api<Match>(`/api/matches/${id}`),
       session
-        ? fetch("/api/user/passes").then((r) => r.json())
-        : Promise.resolve([]),
+        ? api<{ passes: { matchId: string; expiresAt: string }[] }>("/api/user/passes")
+        : Promise.resolve({ passes: [] }),
     ])
       .then(([matchData, passesData]) => {
         setMatch(matchData);
-        const passes = passesData.passes ?? passesData ?? [];
+        const passes = passesData.passes ?? [];
         setHasPass(
           passes.some(
-            (p: { matchId: string; expiresAt: string }) =>
+            (p) =>
               p.matchId === id && new Date(p.expiresAt) > new Date()
           )
         );
       })
-      .catch(() => {})
+      .catch((err) => showApiError(err, "Failed to load match"))
       .finally(() => setLoading(false));
   }, [id, session]);
 
@@ -92,18 +93,10 @@ export default function MatchDetailPage({
         body.phone = phone;
       }
 
-      const res = await fetch("/api/payments/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Payment initiation failed");
-      }
-
-      const data = await res.json();
+      const data = await api<{ paymentId?: string; redirectUrl?: string }>(
+        "/api/payments/initiate",
+        { method: "POST", body }
+      );
 
       if (data.redirectUrl) {
         // PayPal — redirect to payment page
@@ -113,7 +106,7 @@ export default function MatchDetailPage({
 
       // EcoCash — poll for completion
       setPaymentStep("polling");
-      await pollPayment(data.paymentId);
+      await pollPayment(data.paymentId!);
     } catch (err) {
       setPaymentError(
         err instanceof Error ? err.message : "Payment failed"
@@ -127,8 +120,7 @@ export default function MatchDetailPage({
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       try {
-        const res = await fetch(`/api/payments/poll/${paymentId}`);
-        const data = await res.json();
+        const data = await api<{ status: string }>(`/api/payments/poll/${paymentId}`);
 
         if (data.status === "COMPLETED") {
           setPaymentStep("success");
@@ -224,7 +216,7 @@ export default function MatchDetailPage({
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
+              className="text-center py-4"
             >
               <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
               <h2 className="mt-4 text-xl font-bold">You Have Access!</h2>
@@ -242,7 +234,7 @@ export default function MatchDetailPage({
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
+              className="text-center py-4"
             >
               <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
               <h2 className="mt-4 text-xl font-bold">Payment Successful!</h2>
@@ -257,55 +249,78 @@ export default function MatchDetailPage({
               </Button>
             </motion.div>
           ) : paymentStep === "polling" ? (
-            <div className="text-center py-8">
-              <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
-              <h2 className="mt-4 text-lg font-semibold">
-                Waiting for Payment
-              </h2>
+            <div className="py-10 text-center">
+              <div className="relative mx-auto mb-6 h-16 w-16">
+                <Loader2 className="h-16 w-16 animate-spin text-primary/30" />
+                <Loader2 className="absolute inset-0 h-16 w-16 animate-spin text-primary [animation-duration:1.5s]" style={{ clipPath: "inset(0 50% 0 0)" }} />
+              </div>
+              <h2 className="text-lg font-semibold">Waiting for Payment</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Please confirm the payment on your phone. This may take a
-                moment...
+                moment…
               </p>
+            </div>
+          ) : paymentStep === "error" ? (
+            <div className="text-center py-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-4 text-sm text-destructive mb-6">
+                {paymentError}
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <Button
+                  onClick={() => {
+                    setPaymentStep("details");
+                    setPaymentError("");
+                  }}
+                  className="gradient-accent border-0 text-white"
+                >
+                  Try Again
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/sports">Back to Sports</Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <>
               <h2 className="text-lg font-semibold">Get Match Pass</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pay <span className="font-medium text-foreground">${match.price}</span>{" "}
+                Pay <span className="font-semibold text-foreground">${match.price}</span>{" "}
                 to unlock this match stream.
               </p>
-
-              {paymentError && (
-                <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {paymentError}
-                </div>
-              )}
 
               <Separator className="my-5" />
 
               {/* Provider selection */}
               <div className="grid grid-cols-2 gap-3">
                 <button
+                  type="button"
                   onClick={() => setProvider("ECOCASH")}
-                  className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2.5 rounded-lg border p-3.5 text-left text-sm font-medium transition-all ${
                     provider === "ECOCASH"
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                      ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
                   }`}
                 >
-                  <Smartphone className="h-5 w-5" />
-                  EcoCash
+                  <Smartphone className="h-5 w-5 shrink-0" />
+                  <span>
+                    <span className="block">EcoCash</span>
+                    <span className="block text-xs font-normal text-muted-foreground">Mobile money</span>
+                  </span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setProvider("PAYPAL")}
-                  className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2.5 rounded-lg border p-3.5 text-left text-sm font-medium transition-all ${
                     provider === "PAYPAL"
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                      ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
                   }`}
                 >
-                  <CreditCard className="h-5 w-5" />
-                  PayPal
+                  <CreditCard className="h-5 w-5 shrink-0" />
+                  <span>
+                    <span className="block">PayPal</span>
+                    <span className="block text-xs font-normal text-muted-foreground">Card / PayPal</span>
+                  </span>
                 </button>
               </div>
 
@@ -323,7 +338,16 @@ export default function MatchDetailPage({
                       pattern="07\d{8}"
                       title="Enter a valid Zimbabwean phone number (07XXXXXXXX)"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      You will receive a USSD prompt to confirm.
+                    </p>
                   </div>
+                )}
+
+                {provider === "PAYPAL" && (
+                  <p className="rounded-lg border border-border bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
+                    You will be redirected to PayPal to complete payment securely.
+                  </p>
                 )}
 
                 {!session ? (
@@ -341,7 +365,10 @@ export default function MatchDetailPage({
                     className="gradient-accent w-full border-0 text-white"
                   >
                     {paymentStep === "paying" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing…
+                      </>
                     ) : (
                       `Pay $${match.price} with ${provider === "ECOCASH" ? "EcoCash" : "PayPal"}`
                     )}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parsePaynowWebhook, isPaynowPaid } from "@/lib/paynow";
+import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,7 +87,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Payment failed" });
     }
   } catch (error) {
-    console.error("Payment webhook error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "Payment webhook error");
   }
 }

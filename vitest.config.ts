@@ -13,6 +13,7 @@ export default defineConfig({
     // Separate configs per layer
     projects: [
       {
+        plugins: [tsconfigPaths()],
         test: {
           name: "unit",
           include: ["tests/unit/**/*.test.ts"],
@@ -20,6 +21,7 @@ export default defineConfig({
         },
       },
       {
+        plugins: [tsconfigPaths()],
         test: {
           name: "api",
           include: ["tests/api/**/*.test.ts"],
@@ -27,6 +29,7 @@ export default defineConfig({
         },
       },
       {
+        plugins: [tsconfigPaths()],
         test: {
           name: "db",
           include: ["tests/db/**/*.test.ts"],

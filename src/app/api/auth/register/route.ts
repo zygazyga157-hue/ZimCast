@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { sendVerificationEmail } from "@/lib/mail";
+import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, name, age, gender, city, country } = body;
+    const { email, password, name, phone, dateOfBirth, gender, city, country, interests, language } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -29,17 +32,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (phone) {
+      const existingPhone = await prisma.user.findUnique({ where: { phone } });
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: "Phone number already registered" },
+          { status: 409 }
+        );
+      }
+    }
+
     const hashedPassword = await hash(password, 12);
+    const verifyToken = randomUUID();
+    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name: name || null,
-        age: age ? parseInt(age, 10) : null,
+        phone: phone || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         gender: gender || null,
         city: city || null,
         country: country || null,
+        interests: Array.isArray(interests) ? interests : [],
+        language: language || "English",
+        verifyToken,
+        verifyTokenExpiry,
       },
       select: {
         id: true,
@@ -49,12 +69,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    sendVerificationEmail(email, verifyToken).catch((err) =>
+      console.error("Failed to send verification email:", err)
+    );
+
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Registration error");
   }
 }
