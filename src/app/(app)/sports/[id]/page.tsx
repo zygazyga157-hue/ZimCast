@@ -55,10 +55,31 @@ export default function MatchDetailPage({
   const [hasPass, setHasPass] = useState(false);
 
   // Payment state
-  const [provider, setProvider] = useState<"ECOCASH" | "PAYPAL">("ECOCASH");
+  const [provider, setProvider] = useState<"ECOCASH" | "PAYNOW">("ECOCASH");
   const [phone, setPhone] = useState("");
   const [paymentStep, setPaymentStep] = useState<PaymentStep>("details");
   const [paymentError, setPaymentError] = useState("");
+
+  // Countdown state (must be declared unconditionally)
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    if (!match || match.isLive) return;
+    const update = () => {
+      const diff = new Date(match.kickoff).getTime() - Date.now();
+      if (diff <= 0) { setCountdown("Starting now"); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (d > 0) setCountdown(`${d}d ${h}h ${m}m`);
+      else if (h > 0) setCountdown(`${h}h ${m}m ${s}s`);
+      else setCountdown(`${m}m ${s}s`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [match]);
 
   useEffect(() => {
     Promise.all([
@@ -106,7 +127,7 @@ export default function MatchDetailPage({
       );
 
       if (data.redirectUrl) {
-        // PayPal — redirect to payment page
+        // Paynow web — redirect to Paynow payment page
         window.location.href = data.redirectUrl;
         return;
       }
@@ -167,25 +188,6 @@ export default function MatchDetailPage({
   }
 
   const kickoff = new Date(match.kickoff);
-  const [countdown, setCountdown] = useState("");
-
-  useEffect(() => {
-    if (!match || match.isLive) return;
-    const update = () => {
-      const diff = new Date(match.kickoff).getTime() - Date.now();
-      if (diff <= 0) { setCountdown("Starting now"); return; }
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      if (d > 0) setCountdown(`${d}d ${h}h ${m}m`);
-      else if (h > 0) setCountdown(`${h}h ${m}m ${s}s`);
-      else setCountdown(`${m}m ${s}s`);
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [match]);
 
   return (
     <PageTransition>
@@ -379,17 +381,17 @@ export default function MatchDetailPage({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProvider("PAYPAL")}
+                  onClick={() => setProvider("PAYNOW")}
                   className={`flex items-center gap-2.5 rounded-lg border p-3.5 text-left text-sm font-medium transition-all ${
-                    provider === "PAYPAL"
+                    provider === "PAYNOW"
                       ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
                       : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
                   }`}
                 >
                   <CreditCard className="h-5 w-5 shrink-0" />
                   <span>
-                    <span className="block">PayPal</span>
-                    <span className="block text-xs font-normal text-muted-foreground">Card / PayPal</span>
+                    <span className="block">Paynow</span>
+                    <span className="block text-xs font-normal text-muted-foreground">Visa / Mastercard</span>
                   </span>
                 </button>
               </div>
@@ -414,9 +416,9 @@ export default function MatchDetailPage({
                   </div>
                 )}
 
-                {provider === "PAYPAL" && (
+                {provider === "PAYNOW" && (
                   <p className="rounded-lg border border-border bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
-                    You will be redirected to PayPal to complete payment securely.
+                    You will be redirected to Paynow to complete payment securely.
                   </p>
                 )}
 
@@ -440,7 +442,7 @@ export default function MatchDetailPage({
                         Processing…
                       </>
                     ) : (
-                      `Pay $${match.price} with ${provider === "ECOCASH" ? "EcoCash" : "PayPal"}`
+                      `Pay $${match.price} with ${provider === "ECOCASH" ? "EcoCash" : "Paynow"}`
                     )}
                   </Button>
                 )}

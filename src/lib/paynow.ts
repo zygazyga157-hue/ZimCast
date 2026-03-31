@@ -86,14 +86,23 @@ if (process.env.NODE_ENV !== "production") globalForPaynow.paynow = paynow;
  */
 export async function initiatePaynowPayment(opts: {
   reference: string;
-  email: string;
   description: string;
   amount: number;
+  returnUrl?: string;
 }): Promise<PaynowInitResponse> {
-  const payment = paynow.createPayment(opts.reference, opts.email);
-  payment.add(opts.description, opts.amount);
-  const response = await paynow.send(payment);
-  return response;
+  // authEmail must be the merchant's registered email (required in test mode)
+  const authEmail = process.env.PAYNOW_MERCHANT_EMAIL ?? "";
+  // Allow per-request return URL so user lands back on the correct page
+  const prevReturnUrl = paynow.returnUrl;
+  if (opts.returnUrl) paynow.returnUrl = opts.returnUrl;
+  try {
+    const payment = paynow.createPayment(opts.reference, authEmail);
+    payment.add(opts.description, opts.amount);
+    const response = await paynow.send(payment);
+    return response;
+  } finally {
+    paynow.returnUrl = prevReturnUrl;
+  }
 }
 
 /**
@@ -102,13 +111,14 @@ export async function initiatePaynowPayment(opts: {
  */
 export async function initiatePaynowMobile(opts: {
   reference: string;
-  email: string;
   description: string;
   amount: number;
   phone: string;
   method: "ecocash" | "telecash" | "onemoney";
 }): Promise<PaynowInitResponse> {
-  const payment = paynow.createPayment(opts.reference, opts.email);
+  // authEmail must be the merchant's registered email (required in test mode)
+  const authEmail = process.env.PAYNOW_MERCHANT_EMAIL ?? "";
+  const payment = paynow.createPayment(opts.reference, authEmail);
   payment.add(opts.description, opts.amount);
   const response = await paynow.sendMobile(payment, opts.phone, opts.method);
   return response;

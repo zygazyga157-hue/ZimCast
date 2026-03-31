@@ -45,10 +45,10 @@ export async function GET(
 
     // Already finalised — return cached status without hitting Paynow
     if (payment.status === "COMPLETED") {
-      return NextResponse.json({ status: "COMPLETED", hasAccess: true });
+      return NextResponse.json({ status: "COMPLETED", hasAccess: true, matchId: payment.matchId });
     }
     if (payment.status === "FAILED") {
-      return NextResponse.json({ status: "FAILED", hasAccess: false });
+      return NextResponse.json({ status: "FAILED", hasAccess: false, matchId: payment.matchId });
     }
 
     if (!payment.pollUrl) {
@@ -65,16 +65,13 @@ export async function GET(
       return NextResponse.json({ status: "PENDING", hasAccess: false });
     }
 
-    if (isPaynowPaid(pollResponse.redirectUrl ?? "")) {
-      // The sdk re-uses InitResponse for poll; status lives in redirectUrl field
-      // when it's a status string like "Paid" from the poll URL response.
-    }
-
-    // Check the status embedded in the response (SDK re-wraps via parse/InitResponse)
-    // The poll URL returns the same URL-encoded payload as the webhook.
-    // The SDK's pollTransaction calls parse() which builds an InitResponse.
-    // If payment was received, the redirect URL field is absent but success=true.
-    const paid = pollResponse.success || isPaynowPaid(pollResponse.redirectUrl ?? "");
+    // The SDK's pollTransaction() re-wraps the poll URL response into an
+    // InitResponse. success=true when Paynow reports Paid / Awaiting Delivery.
+    // We also check the redirectUrl field which some SDK versions populate
+    // with the raw status string from the poll payload.
+    const paid =
+      pollResponse.success ||
+      isPaynowPaid(pollResponse.redirectUrl ?? "");
 
     if (paid) {
       const matchEnd = new Date(payment.match.kickoff.getTime() + 4 * 60 * 60 * 1000);
@@ -102,10 +99,10 @@ export async function GET(
         }),
       ]);
 
-      return NextResponse.json({ status: "COMPLETED", hasAccess: true });
+      return NextResponse.json({ status: "COMPLETED", hasAccess: true, matchId: payment.matchId });
     }
 
-    return NextResponse.json({ status: "PENDING", hasAccess: false });
+    return NextResponse.json({ status: "PENDING", hasAccess: false, matchId: payment.matchId });
   } catch (error) {
     return handleApiError(error, "Payment poll error");
   }

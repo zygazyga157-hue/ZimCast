@@ -13,7 +13,6 @@ enum Role {
 
 enum PaymentProvider {
   ECOCASH
-  PAYPAL
   PAYNOW
 }
 

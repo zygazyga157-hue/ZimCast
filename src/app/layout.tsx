@@ -9,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ZimCast — Live Sports & TV Streaming",
   description:
-    "Stream live sports matches and ZTV right from Zimbabwe. Pay per match with EcoCash or PayPal.",
+    "Stream live sports matches and ZTV right from Zimbabwe. Pay per match with EcoCash or Paynow.",
   manifest: "/manifest.json",
 };
 

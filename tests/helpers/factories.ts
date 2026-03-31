@@ -80,7 +80,7 @@ export async function createMatchPass(
 export async function createPayment(
   userId: string,
   matchId: string,
-  opts: { status?: "PENDING" | "COMPLETED" | "FAILED"; provider?: "PAYNOW" | "ECOCASH" | "PAYPAL"; amount?: number } = {}
+  opts: { status?: "PENDING" | "COMPLETED" | "FAILED"; provider?: "PAYNOW" | "ECOCASH"; amount?: number } = {}
 ) {
   return prisma.payment.create({
     data: {

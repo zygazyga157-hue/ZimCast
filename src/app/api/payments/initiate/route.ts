@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!["ECOCASH", "PAYPAL", "PAYNOW"].includes(provider)) {
+    if (!["ECOCASH", "PAYNOW"].includes(provider)) {
       return NextResponse.json(
         { error: "Invalid payment provider" },
         { status: 400 }
@@ -68,13 +68,12 @@ export async function POST(req: Request) {
         userId: session.user.id,
         matchId,
         amount: match.price,
-        provider: provider as "ECOCASH" | "PAYPAL" | "PAYNOW",
+        provider: provider as "ECOCASH" | "PAYNOW",
       },
     });
 
     const amount = Number(match.price);
     const description = `${match.homeTeam} vs ${match.awayTeam} – Match Access`;
-    const email = session.user.email ?? "";
 
     let paynowResponse;
 
@@ -82,7 +81,6 @@ export async function POST(req: Request) {
       // Mobile payment — no browser redirect
       paynowResponse = await initiatePaynowMobile({
         reference: payment.id,
-        email,
         description,
         amount,
         phone: phone!,
@@ -90,11 +88,12 @@ export async function POST(req: Request) {
       });
     } else {
       // PAYNOW web redirect
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
       paynowResponse = await initiatePaynowPayment({
         reference: payment.id,
-        email,
         description,
         amount,
+        returnUrl: `${baseUrl}/payment/success?ref=${payment.id}`,
       });
     }
 

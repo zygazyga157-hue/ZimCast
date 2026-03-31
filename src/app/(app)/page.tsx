@@ -70,7 +70,7 @@ const steps = [
   {
     icon: CreditCard,
     title: "Pay for a Match",
-    description: "Use EcoCash or PayPal. Instant unlock.",
+    description: "Use EcoCash or Paynow. Instant unlock.",
   },
   {
     icon: Play,
@@ -130,7 +130,8 @@ export default function HomePage() {
     fetch("/api/matches?status=live")
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setLiveMatches(data);
+        const matches = data?.matches ?? data;
+        if (Array.isArray(matches)) setLiveMatches(matches);
       })
       .catch(() => {});
   }, []);
@@ -176,7 +177,7 @@ export default function HomePage() {
               className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground sm:text-xl"
             >
               Watch live sports matches and ZTV. Pay per match with EcoCash or
-              PayPal — no subscriptions, no contracts.
+              Paynow — no subscriptions, no contracts.
             </motion.p>
 
             <motion.div

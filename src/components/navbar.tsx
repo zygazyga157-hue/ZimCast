@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { User, LogOut, Tv, Trophy, Home } from "lucide-react";
+import { User, LogOut, Tv, Trophy, Home, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -96,6 +96,14 @@ export function Navbar() {
                     Profile & Passes
                   </Link>
                 </DropdownMenuItem>
+                {(session.user as { role?: string }).role === "ADMIN" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: "/" })}
