@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Radio, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Radio, Lock, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
+import { StreamControls } from "@/components/stream-controls";
+import { useViewerCount } from "@/hooks/use-viewer-count";
 import { api, ApiError } from "@/lib/api";
+import type Player from "video.js/dist/types/player";
 
 const VideoPlayer = dynamic(() => import("@/components/video-player"), { ssr: false });
 
@@ -20,6 +23,12 @@ interface Match {
   kickoff: string;
   isLive: boolean;
   streamKey: string;
+}
+
+function getInitials(team: string): string {
+  const words = team.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words.map((w) => w[0]).join("").slice(0, 3).toUpperCase();
 }
 
 export default function WatchPage({
@@ -34,6 +43,12 @@ export default function WatchPage({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [player, setPlayer] = useState<Player | null>(null);
+
+  const channel = match?.streamKey ? `match_${match.streamKey}` : null;
+  const viewers = useViewerCount({ channel });
+
+  const handleReady = useCallback((p: Player) => setPlayer(p), []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -49,7 +64,8 @@ export default function WatchPage({
         setMatch(matchData);
 
         const tokenData = await api<{ token: string }>(
-          `/api/streams/token?matchId=${id}`
+          "/api/streams/token",
+          { method: "POST", body: { matchId: id } }
         );
         const baseUrl =
           process.env.NEXT_PUBLIC_MEDIAMTX_HLS_URL ?? "/hls";
@@ -77,6 +93,8 @@ export default function WatchPage({
       </div>
     );
   }
+
+  const kickoff = match ? new Date(match.kickoff) : null;
 
   return (
     <PageTransition>
@@ -109,33 +127,72 @@ export default function WatchPage({
           </div>
         ) : (
           <>
-            {streamUrl && <VideoPlayer src={streamUrl} autoplay />}
+            {/* Video player */}
+            <div className="overflow-hidden rounded-xl border border-border">
+              {streamUrl && (
+                <VideoPlayer src={streamUrl} autoplay onReady={handleReady} />
+              )}
+            </div>
 
+            {/* Controls bar */}
             {match && (
-              <div className="mt-4 rounded-xl border border-border bg-card px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-semibold">
-                    {match.homeTeam} <span className="text-muted-foreground font-normal text-sm">vs</span> {match.awayTeam}
-                  </h1>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {new Date(match.kickoff).toLocaleDateString("en-ZW", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+              <div className="mt-3">
+                <StreamControls viewers={viewers} player={player} />
+              </div>
+            )}
+
+            {/* Match info panel */}
+            {match && kickoff && (
+              <div className="mt-4 rounded-xl border border-border bg-card p-5">
+                {/* Teams VS header */}
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-1 items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-xs font-bold text-primary">
+                      {getInitials(match.homeTeam)}
+                    </div>
+                    <p className="truncate text-sm font-semibold">
+                      {match.homeTeam}
+                    </p>
+                  </div>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    VS
+                  </div>
+                  <div className="flex flex-1 items-center gap-3 min-w-0 flex-row-reverse">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/5 text-xs font-bold text-accent">
+                      {getInitials(match.awayTeam)}
+                    </div>
+                    <p className="truncate text-right text-sm font-semibold">
+                      {match.awayTeam}
+                    </p>
+                  </div>
                 </div>
-                {match.isLive && (
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 border-red-500/30 bg-red-500/10 text-red-400"
-                  >
-                    <Radio className="mr-1 h-3 w-3 animate-pulse" />
-                    LIVE
-                  </Badge>
-                )}
+
+                {/* Date + status */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {kickoff.toLocaleDateString("en-ZW", {
+                        weekday: "short", month: "short", day: "numeric",
+                      })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {kickoff.toLocaleTimeString("en-ZW", {
+                        hour: "2-digit", minute: "2-digit", hour12: false,
+                      })}
+                    </span>
+                  </div>
+                  {match.isLive && (
+                    <Badge
+                      variant="outline"
+                      className="border-red-500/30 bg-red-500/10 text-red-400"
+                    >
+                      <Radio className="mr-1 h-3 w-3 animate-pulse" />
+                      LIVE
+                    </Badge>
+                  )}
+                </div>
               </div>
             )}
           </>

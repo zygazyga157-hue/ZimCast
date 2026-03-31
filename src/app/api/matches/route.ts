@@ -37,9 +37,10 @@ export async function GET(req: NextRequest) {
     });
 
     // Cache for 60 seconds
-    await redis.set(cacheKey, JSON.stringify(matches), "EX", 60);
+    const response = { matches };
+    await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
 
-    return NextResponse.json(matches);
+    return NextResponse.json(response);
   } catch (error) {
     return handleApiError(error, "Matches list error");
   }
