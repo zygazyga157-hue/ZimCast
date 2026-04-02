@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { User, LogOut, Tv, Trophy, Home, Shield } from "lucide-react";
+import { User, LogOut, Tv, Trophy, Home, BarChart3, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/live-tv", label: "Live TV", icon: Tv },
   { href: "/sports", label: "Sports", icon: Trophy },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export function Navbar() {
@@ -94,6 +95,12 @@ export function Navbar() {
                   <Link href="/profile" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Profile & Passes
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/analytics" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Analytics
                   </Link>
                 </DropdownMenuItem>
                 {(session.user as { role?: string }).role === "ADMIN" && (

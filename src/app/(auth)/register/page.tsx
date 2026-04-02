@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Loader2, Mail, Check, Phone } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Check, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,7 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [language, setLanguage] = useState("English");
+  const [showOptional, setShowOptional] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -257,98 +258,123 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Row 3: DOB + Gender */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="dob">
-                    Date of birth{" "}
-                    <span className="text-muted-foreground text-xs">(optional)</span>
-                  </Label>
-                  <Input
-                    id="dob"
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
-                    className="[color-scheme:dark]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gender">
-                    Gender{" "}
-                    <span className="text-muted-foreground text-xs">(optional)</span>
-                  </Label>
-                  <select
-                    id="gender"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Select…</option>
-                    {GENDER_OPTIONS.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              {/* Optional details */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowOptional((v) => !v)}
+                className="w-full justify-between"
+              >
+                Optional details
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${showOptional ? "rotate-180" : ""}`}
+                />
+              </Button>
 
-              {/* Row 4: City + Language */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="city">
-                    City{" "}
-                    <span className="text-muted-foreground text-xs">(optional)</span>
-                  </Label>
-                  <Input
-                    id="city"
-                    type="text"
-                    placeholder="e.g. Harare"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <select
-                    id="language"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className={selectClass}
+              <AnimatePresence initial={false}>
+                {showOptional && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden space-y-4"
                   >
-                    {LANGUAGE_OPTIONS.map((lang) => (
-                      <option key={lang} value={lang}>
-                        {lang}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                    {/* Row 3: DOB + Gender */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="dob">
+                          Date of birth{" "}
+                          <span className="text-muted-foreground text-xs">(optional)</span>
+                        </Label>
+                        <Input
+                          id="dob"
+                          type="date"
+                          value={dateOfBirth}
+                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          max={new Date().toISOString().split("T")[0]}
+                          className="[color-scheme:dark]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">
+                          Gender{" "}
+                          <span className="text-muted-foreground text-xs">(optional)</span>
+                        </Label>
+                        <select
+                          id="gender"
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                          className={selectClass}
+                        >
+                          <option value="">Select…</option>
+                          {GENDER_OPTIONS.map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-              {/* Interests */}
-              <div className="space-y-2">
-                <Label>Interests</Label>
-                <div className="flex flex-wrap gap-2">
-                  {INTEREST_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => toggleInterest(opt)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                        interests.includes(opt)
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {interests.includes(opt) && (
-                        <Check className="mr-1 inline h-3 w-3" />
-                      )}
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                    {/* Row 4: City + Language */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">
+                          City{" "}
+                          <span className="text-muted-foreground text-xs">(optional)</span>
+                        </Label>
+                        <Input
+                          id="city"
+                          type="text"
+                          placeholder="e.g. Harare"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="language">Language</Label>
+                        <select
+                          id="language"
+                          value={language}
+                          onChange={(e) => setLanguage(e.target.value)}
+                          className={selectClass}
+                        >
+                          {LANGUAGE_OPTIONS.map((lang) => (
+                            <option key={lang} value={lang}>
+                              {lang}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Interests */}
+                    <div className="space-y-2">
+                      <Label>Interests</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {INTEREST_OPTIONS.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => toggleInterest(opt)}
+                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                              interests.includes(opt)
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            {interests.includes(opt) && (
+                              <Check className="mr-1 inline h-3 w-3" />
+                            )}
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Terms */}
               <label className="flex items-start gap-2.5 cursor-pointer">

@@ -7,7 +7,7 @@ import { type LucideIcon } from "lucide-react";
 interface StatsCardProps {
   icon: LucideIcon;
   label: string;
-  value: number;
+  value: number | string;
   suffix?: string;
   format?: "time" | "number" | "percent";
   delay?: number;
@@ -25,27 +25,43 @@ function formatValue(value: number, format?: string): string {
 }
 
 export function StatsCard({ icon: Icon, label, value, suffix, format, delay = 0 }: StatsCardProps) {
-  const [displayed, setDisplayed] = useState(0);
+  const numericValue = typeof value === "number" ? value : null;
+  const [displayed, setDisplayed] = useState<number>(0);
 
   useEffect(() => {
-    if (value === 0) return;
-    const duration = 1000;
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setTimeout(() => {
-      const interval = setInterval(() => {
+    if (numericValue === null) return;
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const timeout = setTimeout(() => {
+      let current = 0;
+      setDisplayed(0);
+
+      if (numericValue === 0) return;
+
+      const duration = 1000;
+      const steps = 30;
+      const increment = numericValue / steps;
+      interval = setInterval(() => {
         current += increment;
-        if (current >= value) {
-          setDisplayed(value);
-          clearInterval(interval);
+        if (current >= numericValue) {
+          setDisplayed(numericValue);
+          if (interval) clearInterval(interval);
         } else {
           setDisplayed(Math.floor(current));
         }
       }, duration / steps);
     }, delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [numericValue, delay]);
+
+  const displayedText =
+    numericValue === null
+      ? String(value)
+      : formatValue(numericValue === 0 ? 0 : displayed, format);
 
   return (
     <motion.div
@@ -59,8 +75,12 @@ export function StatsCard({ icon: Icon, label, value, suffix, format, delay = 0 
         <span className="text-xs font-medium">{label}</span>
       </div>
       <p className="mt-2 text-2xl font-bold tabular-nums">
-        {formatValue(displayed, format)}
-        {suffix && <span className="text-sm font-normal text-muted-foreground ml-1">{suffix}</span>}
+        {displayedText}
+        {suffix && (
+          <span className="ml-1 text-sm font-normal text-muted-foreground">
+            {suffix}
+          </span>
+        )}
       </p>
     </motion.div>
   );

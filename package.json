@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npx prisma generate && next build",
+    "build": "npx prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "npx prisma migrate dev",
@@ -14,7 +14,7 @@
     "redis:start": "start /B Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-server.exe Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis.conf",
     "redis:stop": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe shutdown nosave",
     "redis:ping": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe ping",
-    "postinstall": "npx prisma generate && node scripts/fix-base-ui-types.js",
+    "postinstall": "npx prisma generate && node scripts/fix-base-ui-types.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

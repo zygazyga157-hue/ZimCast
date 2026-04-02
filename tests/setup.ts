@@ -3,3 +3,4 @@
 // This file is the place for any global polyfills or env guards.
 
 // NODE_ENV is set to "test" by Vitest automatically.
+process.env.STREAM_TOKEN_SECRET ||= "test-secret-for-vitest";

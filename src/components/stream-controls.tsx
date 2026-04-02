@@ -65,7 +65,10 @@ export function StreamControls({ viewers, player }: StreamControlsProps) {
 
       if (qualityLevels) {
         for (let i = 0; i < qualityLevels.length; i++) {
-          qualityLevels[i].enabled = height === undefined || qualityLevels[i].height === height;
+          Object.assign(qualityLevels[i], {
+            enabled:
+              height === undefined || qualityLevels[i].height === height,
+          });
         }
       }
     } catch {

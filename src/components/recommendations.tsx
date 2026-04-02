@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Clock, Trophy, Newspaper, Music, Film, Tv } from "lucide-react";
 import Link from "next/link";
@@ -43,16 +43,13 @@ const categoryColors: Record<string, string> = {
 };
 
 export function Recommendations({ currentCategory, programs }: RecommendationsProps) {
-  const [recommended, setRecommended] = useState<RecommendedProgram[]>([]);
-
-  useEffect(() => {
+  const recommended = useMemo(() => {
     const now = new Date();
     // Filter future programs, prioritize same category, limit to 4
     const future = programs.filter((p) => new Date(p.startTime) > now);
     const sameCategory = future.filter((p) => p.category === currentCategory);
     const other = future.filter((p) => p.category !== currentCategory);
-    const sorted = [...sameCategory, ...other].slice(0, 4);
-    setRecommended(sorted);
+    return [...sameCategory, ...other].slice(0, 4);
   }, [programs, currentCategory]);
 
   if (recommended.length === 0) return null;
@@ -104,7 +101,7 @@ export function Recommendations({ currentCategory, programs }: RecommendationsPr
               </div>
               {isSportsMatch && program.match && (
                 <Link
-                  href={`/matches/${program.match.id}`}
+                  href={`/sports/${program.match.id}`}
                   className="shrink-0 text-[10px] font-medium text-primary hover:underline"
                 >
                   View &#x2192;

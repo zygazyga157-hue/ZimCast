@@ -10,12 +10,14 @@
   --popover: #1A1A1A;
   --popover-foreground: #FFFFFF;
   --primary: #FF416C;
+  --primary-rgb: 255, 65, 108;
   --primary-foreground: #FFFFFF;
   --secondary: #2A2A2A;
   --secondary-foreground: #FFFFFF;
   --muted: #1A1A1A;
   --muted-foreground: #A1A1A1;
   --accent: #FF4B2B;
+  --accent-rgb: 255, 75, 43;
   --accent-foreground: #FFFFFF;
   --destructive: #ef4444;
   --destructive-foreground: #FFFFFF;

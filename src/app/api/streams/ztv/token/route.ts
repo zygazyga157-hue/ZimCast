@@ -12,7 +12,17 @@ export async function GET() {
 
     // Free ZTV channel — any authenticated user can access
     const token = generateStreamToken(session.user.id, "ztv", 4 * 60 * 60); // 4 hours
-    const streamUrl = `${process.env.STREAM_BASE_URL}/ztv/index.m3u8?token=${token}`;
+
+    const streamBaseUrl =
+      process.env.NEXT_PUBLIC_STREAM_BASE_URL ?? process.env.STREAM_BASE_URL;
+    if (!streamBaseUrl) {
+      return NextResponse.json(
+        { error: "Stream base URL is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const streamUrl = `${streamBaseUrl}/ztv/index.m3u8?token=${token}`;
 
     return NextResponse.json({ token, streamUrl });
   } catch (error) {

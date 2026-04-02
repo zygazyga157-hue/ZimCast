@@ -45,7 +45,7 @@ export default function WatchPage({
   const [error, setError] = useState("");
   const [player, setPlayer] = useState<Player | null>(null);
 
-  const channel = match?.streamKey ? `match_${match.streamKey}` : null;
+  const channel = match?.streamKey ?? null;
   const viewers = useViewerCount({ channel });
 
   const handleReady = useCallback((p: Player) => setPlayer(p), []);
@@ -63,15 +63,11 @@ export default function WatchPage({
         const matchData = await api<Match>(`/api/matches/${id}`);
         setMatch(matchData);
 
-        const tokenData = await api<{ token: string }>(
+        const tokenData = await api<{ token: string; streamUrl: string }>(
           "/api/streams/token",
           { method: "POST", body: { matchId: id } }
         );
-        const baseUrl =
-          process.env.NEXT_PUBLIC_MEDIAMTX_HLS_URL ?? "/hls";
-        setStreamUrl(
-          `${baseUrl}/${matchData.streamKey}/index.m3u8?token=${tokenData.token}`
-        );
+        setStreamUrl(tokenData.streamUrl);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);

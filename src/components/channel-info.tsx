@@ -14,9 +14,9 @@ export function ChannelInfo({ isLive, viewers }: ChannelInfoProps) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 rounded-xl border border-border bg-card p-5"
+      className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-5"
     >
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           {/* Channel logo */}
           <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-accent shadow-lg shadow-primary/20">

@@ -21,7 +21,6 @@ export function OffAirScreen({ errorMessage, nextProgram, onRetry }: OffAirScree
 
   // Auto-retry countdown
   useEffect(() => {
-    setAutoRetryIn(15);
     const interval = setInterval(() => {
       setAutoRetryIn((prev) => {
         if (prev <= 1) {

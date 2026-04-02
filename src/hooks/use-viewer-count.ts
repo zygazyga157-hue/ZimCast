@@ -21,8 +21,11 @@ export function useViewerCount({
   heartbeatMs = 15_000,
 }: UseViewerCountOptions) {
   const [viewers, setViewers] = useState<number>(0);
-  const channelRef = useRef(channel);
-  channelRef.current = channel;
+  const channelRef = useRef<string | null>(channel);
+
+  useEffect(() => {
+    channelRef.current = channel;
+  }, [channel]);
 
   const heartbeat = useCallback(async () => {
     if (!channelRef.current) return;
@@ -59,8 +62,10 @@ export function useViewerCount({
   useEffect(() => {
     if (!channel) return;
 
-    // Initial heartbeat
-    heartbeat();
+    // Initial heartbeat (deferred to avoid setState directly in effect)
+    const initial = setTimeout(() => {
+      void heartbeat();
+    }, 0);
 
     // Periodic heartbeats
     const interval = setInterval(heartbeat, heartbeatMs);
@@ -75,6 +80,7 @@ export function useViewerCount({
     window.addEventListener("beforeunload", leave);
 
     return () => {
+      clearTimeout(initial);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", leave);
@@ -82,5 +88,5 @@ export function useViewerCount({
     };
   }, [channel, heartbeatMs, heartbeat, leave]);
 
-  return viewers;
+  return channel ? viewers : 0;
 }

@@ -46,7 +46,7 @@ export function Heatmap({ data }: HeatmapProps) {
                     style={{
                       backgroundColor:
                         minutes > 0
-                          ? `rgba(99, 102, 241, ${opacity})`
+                          ? `rgba(var(--primary-rgb), ${opacity})`
                           : "rgba(255, 255, 255, 0.03)",
                     }}
                   >
@@ -71,7 +71,7 @@ export function Heatmap({ data }: HeatmapProps) {
             <div
               key={level}
               className="h-2.5 w-2.5 rounded-sm"
-              style={{ backgroundColor: `rgba(99, 102, 241, ${level})` }}
+              style={{ backgroundColor: `rgba(var(--primary-rgb), ${level})` }}
             />
           ))}
           <span className="text-[10px] text-muted-foreground">More</span>

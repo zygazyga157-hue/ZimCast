@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   Tv,
   Trophy,
-  Zap,
   Shield,
   Smartphone,
   CalendarDays,
@@ -144,7 +143,7 @@ export default function HomePage() {
         <div className="hero-glow pointer-events-none absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-primary/20 blur-[120px]" />
         <div className="hero-glow pointer-events-none absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-accent/15 blur-[120px]" />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-28 sm:px-6 sm:py-36 lg:px-8 lg:py-44">
+        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
           <div className="mx-auto max-w-3xl text-center">
             <motion.div
               initial={{ opacity: 0, y: 24 }}

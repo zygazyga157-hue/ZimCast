@@ -13,6 +13,7 @@ services:
       - AUTH_TRUST_HOST=true
       - MEDIAMTX_API_URL=http://mediamtx:9997
       - STREAM_BASE_URL=http://mediamtx:8888
+      - NEXT_PUBLIC_STREAM_BASE_URL=${NEXT_PUBLIC_STREAM_BASE_URL:-http://localhost:8888}
       - STREAM_TOKEN_SECRET=${STREAM_TOKEN_SECRET:-dev-stream-secret-change-in-production}
       - PAYNOW_INTEGRATION_ID=${PAYNOW_INTEGRATION_ID:-}
       - PAYNOW_INTEGRATION_KEY=${PAYNOW_INTEGRATION_KEY:-}

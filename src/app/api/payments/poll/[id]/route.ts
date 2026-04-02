@@ -66,11 +66,12 @@ export async function GET(
     }
 
     // The SDK's pollTransaction() re-wraps the poll URL response into an
-    // InitResponse. success=true when Paynow reports Paid / Awaiting Delivery.
-    // We also check the redirectUrl field which some SDK versions populate
-    // with the raw status string from the poll payload.
+    // InitResponse where success = (status === "ok"). For poll responses
+    // Paynow returns status strings like "paid" / "pending" — never "ok".
+    // So we must check the status field directly via isPaynowPaid().
     const paid =
       pollResponse.success ||
+      isPaynowPaid(pollResponse.status ?? "") ||
       isPaynowPaid(pollResponse.redirectUrl ?? "");
 
     if (paid) {

@@ -87,10 +87,10 @@ export function UpNext({ program }: UpNextProps) {
         <div className="mt-2 flex items-center justify-between rounded-lg bg-orange-500/5 px-3 py-2 border border-orange-500/10">
           <div className="flex items-center gap-2 text-xs text-orange-400">
             <Trophy className="h-3.5 w-3.5" />
-            <span>Live match — get premium access</span>
+            <span>Sports match up next</span>
           </div>
           <Link
-            href={`/matches/${program.match.id}`}
+            href={`/sports/${program.match.id}`}
             className="text-xs font-medium text-primary hover:underline"
           >
             View Match →

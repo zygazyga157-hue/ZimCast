@@ -19,6 +19,12 @@ interface PaynowPayment {
 export interface PaynowInitResponse {
   success: boolean;
   error?: string;
+  /**
+   * Raw Paynow status string returned by pollTransaction().
+   * For poll responses this is e.g. "paid", "pending", "cancelled".
+   * For initiation responses this is "ok" or "error".
+   */
+  status?: string;
   /** Redirect the user here to complete payment on the Paynow site. */
   redirectUrl?: string;
   /** URL to poll for payment status. Store in the Payment record. */

@@ -88,7 +88,10 @@ export async function POST(req: Request) {
       });
     } else {
       // PAYNOW web redirect
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ??
+        process.env.NEXTAUTH_URL ??
+        "http://localhost:3000";
       paynowResponse = await initiatePaynowPayment({
         reference: payment.id,
         description,

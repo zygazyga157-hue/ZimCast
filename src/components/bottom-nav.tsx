@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Trophy, User } from "lucide-react";
+import { Home, Tv, Trophy, BarChart3, User } from "lucide-react";
 
 const tabs = [
   { href: "/", label: "Home", icon: Home },
   { href: "/live-tv", label: "Live TV", icon: Tv },
   { href: "/sports", label: "Sports", icon: Trophy },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -28,14 +29,14 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap text-[9px] font-medium leading-none transition-colors ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground active:text-foreground"
               }`}
             >
               {isActive && (
-                <span className="gradient-accent absolute inset-x-4 top-0 h-0.5 rounded-full" />
+                <span className="gradient-accent absolute inset-x-3 top-0 h-0.5 rounded-full" />
               )}
               <tab.icon
                 className={`h-5 w-5 ${isActive ? "fill-primary/20" : ""}`}

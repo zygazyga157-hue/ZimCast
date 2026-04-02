@@ -252,7 +252,7 @@ export default function AdminMatchesPage() {
       <div className="rounded-xl border border-border bg-card overflow-x-auto">
         {matches.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-            No matches. Click "Add Match" to create one.
+            No matches. Click &quot;Add Match&quot; to create one.
           </p>
         ) : (
           <table className="w-full text-sm">

@@ -1,20 +1,24 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-const SECRET = process.env.STREAM_TOKEN_SECRET || "change-me";
+const secretFromEnv = process.env.STREAM_TOKEN_SECRET;
+if (!secretFromEnv) {
+  throw new Error("STREAM_TOKEN_SECRET must be set");
+}
+const SECRET: string = secretFromEnv;
 
 interface TokenPayload {
   userId: string;
-  matchId: string;
+  path: string;
   exp: number;
 }
 
 export function generateStreamToken(
   userId: string,
-  matchId: string,
+  path: string,
   expiresInSeconds: number = 3 * 60 * 60 // 3 hours default
 ): string {
   const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  const payload: TokenPayload = { userId, matchId, exp };
+  const payload: TokenPayload = { userId, path, exp };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", SECRET).update(data).digest("base64url");
   return `${data}.${signature}`;

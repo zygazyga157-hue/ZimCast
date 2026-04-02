@@ -30,16 +30,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
       }
 
-      // For ZTV, any valid token works
-      if (path === "ztv" && payload.matchId === "ztv") {
+      // For ZTV, require a token minted for the ZTV path
+      if (path === "ztv" && payload.path === "ztv") {
         return NextResponse.json({ ok: true });
       }
 
-      // For match streams, verify the token matches the stream path
-      // Stream paths are like "match_dynamos_caps" and matchId is stored in DB
-      // The token's matchId should correspond to a match whose streamKey matches the path
       if (path.startsWith("match_")) {
-        return NextResponse.json({ ok: true });
+        if (payload.path === path) {
+          return NextResponse.json({ ok: true });
+        }
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
 
       return NextResponse.json({ error: "Access denied" }, { status: 403 });

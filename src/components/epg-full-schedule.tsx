@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Clock, Trophy, Newspaper, Music, Film, Tv, Radio } from "lucide-react";
+import { ChevronDown, Trophy, Newspaper, Music, Film, Tv, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Program {

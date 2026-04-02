@@ -4,26 +4,17 @@
  * but is missing the barrel index.d.ts files that TypeScript needs
  * when resolving subpath imports via the package.json exports map.
  *
- * Run: node scripts/fix-base-ui-types.js
+ * Run: node scripts/fix-base-ui-types.mjs
  */
-const fs = require("fs");
-const path = require("path");
 
-const base = path.join(
-  __dirname,
-  "..",
-  "node_modules",
-  "@base-ui",
-  "react",
-  "esm"
-);
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-function writeIfMissing(filePath, content) {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, content, "utf8");
-    console.log("  Created", path.relative(base, filePath));
-  }
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const base = path.join(__dirname, "..", "node_modules", "@base-ui", "react", "esm");
 
 // For each subpath module, mirror the index.js (and index.parts.js) as .d.ts
 const modules = [

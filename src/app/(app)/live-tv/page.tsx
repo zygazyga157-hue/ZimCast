@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import type Player from "video.js/dist/types/player";
 import { PageTransition } from "@/components/page-transition";
 import { PullToRefresh } from "@/components/pull-to-refresh";
@@ -20,6 +21,7 @@ import { Recommendations } from "@/components/recommendations";
 import { useTrackActivity } from "@/hooks/use-track-activity";
 import { useViewerCount } from "@/hooks/use-viewer-count";
 import { api, ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 const VideoPlayer = dynamic(() => import("@/components/video-player"), { ssr: false });
 
@@ -47,7 +49,7 @@ interface ProgramsResponse {
 }
 
 export default function LiveTVPage() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,9 +83,14 @@ export default function LiveTVPage() {
       setNextProgram(epgData.nextProgram ?? null);
 
       if (statusData.available) {
-        const tokenData = await api<{ token: string }>("/api/streams/ztv/token");
-        const baseUrl = process.env.NEXT_PUBLIC_MEDIAMTX_HLS_URL ?? "/hls";
-        setStreamUrl(`${baseUrl}/ztv/index.m3u8?token=${tokenData.token}`);
+        if (!session) {
+          setStreamUrl(null);
+        } else {
+          const tokenData = await api<{ token: string; streamUrl: string }>(
+            "/api/streams/ztv/token"
+          );
+          setStreamUrl(tokenData.streamUrl);
+        }
       } else {
         setStreamUrl(null);
       }
@@ -96,11 +103,11 @@ export default function LiveTVPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, session]);
+  }, [fetchData]);
 
   // Auto-refresh when blackout should end
   useEffect(() => {
@@ -122,7 +129,7 @@ export default function LiveTVPage() {
 
           {/* Video / Off-Air / Blackout / Loading */}
           <AnimatePresence mode="wait">
-            {loading ? (
+            {sessionStatus === "loading" || loading ? (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
@@ -132,6 +139,34 @@ export default function LiveTVPage() {
                 style={{ aspectRatio: "16/9" }}
               >
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </motion.div>
+            ) : status?.available && !session ? (
+              <motion.div
+                key="sign-in"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center justify-center rounded-xl border border-border bg-card p-6 text-center"
+                style={{ aspectRatio: "16/9" }}
+              >
+                <div className="mx-auto max-w-sm">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                    <Lock className="h-7 w-7 text-primary" />
+                  </div>
+                  <h2 className="mt-4 text-xl font-bold">Sign in to watch ZTV</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    ZTV is free-to-air, but you need an account to access the stream.
+                  </p>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                    <Button className="gradient-accent border-0 text-white" asChild>
+                      <Link href="/login">Sign In</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/register">Create Account</Link>
+                    </Button>
+                  </div>
+                </div>
               </motion.div>
             ) : status && !status.available && status.blackoutMatch ? (
               <motion.div

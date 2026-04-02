@@ -131,7 +131,7 @@ export default function ProfilePage() {
 
     Promise.all([
       api<Profile>("/api/user/profile"),
-      api<{ passes: Pass[] }>("/api/user/passes"),
+      api<Pass[]>("/api/user/passes"),
     ])
       .then(([profileData, passesData]) => {
         setProfile(profileData);
@@ -143,7 +143,7 @@ export default function ProfilePage() {
         setCountry(profileData.country ?? "");
         setInterests(profileData.interests ?? []);
         setLanguage(profileData.language ?? "English");
-        setPasses(passesData.passes ?? []);
+        setPasses(passesData ?? []);
       })
       .catch((err) => showApiError(err, "Failed to load profile"))
       .finally(() => setLoading(false));
@@ -234,10 +234,24 @@ export default function ProfilePage() {
   return (
     <PageTransition>
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold sm:text-3xl">Profile</h1>
-        <p className="mt-2 text-muted-foreground">
-          Manage your account, passes, and viewing insights.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Profile
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Manage your account, passes, and viewing insights.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px]">
+              {activePasses.length} active pass{activePasses.length === 1 ? "" : "es"}
+            </Badge>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/analytics">Analytics</Link>
+            </Button>
+          </div>
+        </div>
 
         {/* Email verification banner */}
         {profile && !profile.emailVerified && (
@@ -288,7 +302,7 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                className={`relative flex flex-1 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] font-medium transition-colors sm:flex-row sm:gap-2 sm:px-3 sm:text-sm ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground/80"
@@ -302,7 +316,7 @@ export default function ProfilePage() {
                   />
                 )}
                 <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="relative">{tab.label}</span>
               </button>
             );
           })}
@@ -585,8 +599,7 @@ export default function ProfilePage() {
                     <StatsCard
                       icon={Star}
                       label="Favorite"
-                      value={0}
-                      suffix={analytics.favoriteCategory?.toLowerCase() ?? "—"}
+                      value={analytics.favoriteCategory?.toLowerCase() ?? "—"}
                       delay={200}
                     />
                     <StatsCard

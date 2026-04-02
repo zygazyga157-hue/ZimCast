@@ -23,7 +23,8 @@ udpMaxPayloadSize: 1452
 # is validated against the ZimCast token endpoint.
 ###############################################
 authMethod: http
-authHTTPAddress: http://127.0.0.1:3000/api/streams/auth-hook
+# In Docker Compose, MediaMTX must reach the Next.js app over the service name.
+authHTTPAddress: http://app:3000/api/streams/auth-hook
 # Exclude API/metrics from auth (localhost-only anyway)
 authHTTPExclude:
   - action: api

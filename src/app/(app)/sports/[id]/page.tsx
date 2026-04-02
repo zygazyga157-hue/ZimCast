@@ -85,12 +85,12 @@ export default function MatchDetailPage({
     Promise.all([
       api<Match>(`/api/matches/${id}`),
       session
-        ? api<{ passes: { matchId: string; expiresAt: string }[] }>("/api/user/passes")
-        : Promise.resolve({ passes: [] }),
+        ? api<Array<{ matchId: string; expiresAt: string }>>("/api/user/passes")
+        : Promise.resolve([]),
     ])
       .then(([matchData, passesData]) => {
         setMatch(matchData);
-        const passes = passesData.passes ?? [];
+        const passes = passesData ?? [];
         setHasPass(
           passes.some(
             (p) =>
@@ -128,7 +128,7 @@ export default function MatchDetailPage({
 
       if (data.redirectUrl) {
         // Paynow web — redirect to Paynow payment page
-        window.location.href = data.redirectUrl;
+        window.location.assign(data.redirectUrl);
         return;
       }
 
@@ -148,9 +148,9 @@ export default function MatchDetailPage({
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       try {
-        const data = await api<{ status: string }>(`/api/payments/poll/${paymentId}`);
+        const data = await api<{ status: string; hasAccess?: boolean }>(`/api/payments/poll/${paymentId}`);
 
-        if (data.status === "COMPLETED") {
+        if (data.status === "COMPLETED" || data.hasAccess) {
           setPaymentStep("success");
           setHasPass(true);
           return;
@@ -164,7 +164,19 @@ export default function MatchDetailPage({
         // continue polling
       }
     }
-    setPaymentError("Payment timed out. Check your transaction history.");
+    // Polling exhausted — do one final pass check via the passes endpoint
+    // in case the payment completed via webhook while we were waiting
+    try {
+      const passes = await api<Array<{ matchId: string }>>("/api/user/passes");
+      if (match && passes.some((p) => p.matchId === match.id)) {
+        setPaymentStep("success");
+        setHasPass(true);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    setPaymentError("Payment timed out. Please check your passes or contact support.");
     setPaymentStep("error");
   }
 
@@ -338,6 +350,27 @@ export default function MatchDetailPage({
                 {paymentError}
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                {paymentError.includes("timed out") && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const passes = await api<Array<{ matchId: string }>>("/api/user/passes");
+                        if (passes.some((p) => p.matchId === match.id)) {
+                          setPaymentStep("success");
+                          setHasPass(true);
+                          setPaymentError("");
+                          return;
+                        }
+                      } catch {
+                        // ignore
+                      }
+                      setPaymentError("No active pass found yet. Please wait a moment and try again.");
+                    }}
+                    variant="outline"
+                  >
+                    Check Access
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     setPaymentStep("details");

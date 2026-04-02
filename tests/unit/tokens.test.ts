@@ -21,13 +21,13 @@ describe("generateStreamToken", () => {
     expect(parts[1]).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
-  it("encodes userId and matchId in the payload", async () => {
+  it("encodes userId and path in the payload", async () => {
     const { generate } = await getTokenFns();
     const token = generate("user42", "match99");
     const [data] = token.split(".");
     const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
     expect(payload.userId).toBe("user42");
-    expect(payload.matchId).toBe("match99");
+    expect(payload.path).toBe("match99");
   });
 
   it("sets expiry approximately equal to requested seconds from now", async () => {
@@ -41,12 +41,12 @@ describe("generateStreamToken", () => {
     expect(payload.exp).toBeLessThanOrEqual(after + 3600);
   });
 
-  it("handles ZTV special matchId 'ztv'", async () => {
+  it("handles ZTV special path 'ztv'", async () => {
     const { generate } = await getTokenFns();
     const token = generate("user1", "ztv", 4 * 60 * 60);
     const [data] = token.split(".");
     const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
-    expect(payload.matchId).toBe("ztv");
+    expect(payload.path).toBe("ztv");
   });
 });
 
@@ -57,7 +57,7 @@ describe("verifyStreamToken", () => {
     const result = verify(token);
     expect(result).not.toBeNull();
     expect(result!.userId).toBe("user1");
-    expect(result!.matchId).toBe("match1");
+    expect(result!.path).toBe("match1");
   });
 
   it("returns null for a tampered signature", async () => {
@@ -75,7 +75,7 @@ describe("verifyStreamToken", () => {
     const [, sig] = token.split(".");
     // Forge a different payload with original sig
     const badPayload = Buffer.from(
-      JSON.stringify({ userId: "hacker", matchId: "match1", exp: 9999999999 })
+      JSON.stringify({ userId: "hacker", path: "match1", exp: 9999999999 })
     ).toString("base64url");
     expect(verify(`${badPayload}.${sig}`)).toBeNull();
   });

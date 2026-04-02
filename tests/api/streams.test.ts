@@ -108,10 +108,10 @@ describe("GET /api/streams/ztv/token", () => {
     const res = await api("GET", "/api/streams/ztv/token", undefined, cookie);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("token");
-    // Verify the token encodes matchId = 'ztv'
+    // Verify the token encodes path = 'ztv'
     const [data] = (res.body.token as string).split(".");
     const payload = JSON.parse(Buffer.from(data, "base64url").toString());
-    expect(payload.matchId).toBe("ztv");
+    expect(payload.path).toBe("ztv");
   });
 });
 
@@ -145,7 +145,7 @@ describe("POST /api/streams/auth-hook", () => {
 
   it("allows read action for a match stream with a valid HMAC token", async () => {
     process.env.STREAM_TOKEN_SECRET = "test-secret-for-vitest";
-    const token = generateStreamToken("user-x", "match-id-x", 3600);
+    const token = generateStreamToken("user-x", "match_dynamos_caps", 3600);
     const res = await api("POST", "/api/streams/auth-hook", {
       action: "read",
       path: "match_dynamos_caps",

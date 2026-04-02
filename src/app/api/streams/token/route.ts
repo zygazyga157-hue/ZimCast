@@ -49,9 +49,18 @@ export async function POST(req: Request) {
       Math.floor((pass.expiresAt.getTime() - Date.now()) / 1000),
       600 // minimum 10 minutes
     );
-    const token = generateStreamToken(session.user.id, matchId, remainingSeconds);
+    const token = generateStreamToken(session.user.id, match.streamKey, remainingSeconds);
 
-    const streamUrl = `${process.env.STREAM_BASE_URL}/${match.streamKey}/index.m3u8?token=${token}`;
+    const streamBaseUrl =
+      process.env.NEXT_PUBLIC_STREAM_BASE_URL ?? process.env.STREAM_BASE_URL;
+    if (!streamBaseUrl) {
+      return NextResponse.json(
+        { error: "Stream base URL is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const streamUrl = `${streamBaseUrl}/${match.streamKey}/index.m3u8?token=${token}`;
 
     return NextResponse.json({ token, streamUrl });
   } catch (error) {

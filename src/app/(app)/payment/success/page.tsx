@@ -46,8 +46,42 @@ function PaymentResult() {
   }, [ref]);
 
   useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    if (!ref) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await api<{
+          status: string;
+          hasAccess?: boolean;
+          matchId?: string;
+        }>(`/api/payments/poll/${ref}`);
+
+        if (cancelled) return;
+
+        if (data.status === "COMPLETED") {
+          setStatus("success");
+          setMatchId(data.matchId ?? null);
+          return;
+        }
+
+        if (data.status === "FAILED") {
+          setStatus("failed");
+          return;
+        }
+
+        setStatus("pending");
+      } catch {
+        if (cancelled) return;
+        setStatus("failed");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ref]);
 
   // Auto-poll while pending (max 20 attempts, every 3s)
   useEffect(() => {
@@ -59,7 +93,9 @@ function PaymentResult() {
     return () => clearTimeout(timer);
   }, [status, pollCount, checkStatus]);
 
-  if (status === "loading") {
+  const effectiveStatus: Status = ref ? status : "failed";
+
+  if (effectiveStatus === "loading") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -70,7 +106,7 @@ function PaymentResult() {
   return (
     <PageTransition>
       <div className="mx-auto max-w-lg px-4 py-16 sm:px-6">
-        {status === "success" && (
+        {effectiveStatus === "success" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -96,7 +132,7 @@ function PaymentResult() {
           </motion.div>
         )}
 
-        {status === "pending" && (
+        {effectiveStatus === "pending" && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -132,7 +168,7 @@ function PaymentResult() {
           </motion.div>
         )}
 
-        {status === "failed" && (
+        {effectiveStatus === "failed" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
