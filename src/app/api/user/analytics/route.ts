@@ -23,32 +23,38 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // Total watch time (seconds)
-    const totalWatchTime = activities.reduce((sum, a) => sum + a.watchDuration, 0);
+    // Filter out noise: only WATCH actions with meaningful duration
+    const meaningful = activities.filter((a) => a.watchDuration >= 5);
 
-    // Category breakdown (seconds)
+    // Total watch time (seconds)
+    const totalWatchTime = meaningful.reduce((sum, a) => sum + a.watchDuration, 0);
+
+    // Category breakdown (seconds) — skip orphan records (no program, no match)
     const categoryBreakdown: Record<string, number> = {};
-    for (const a of activities) {
-      const cat = a.program?.category ?? (a.matchId ? "SPORTS" : "OTHER");
+    for (const a of meaningful) {
+      const cat = a.program?.category ?? (a.matchId ? "SPORTS" : null);
+      if (!cat) continue; // skip unattributable records
       categoryBreakdown[cat] = (categoryBreakdown[cat] ?? 0) + a.watchDuration;
     }
 
-    // Favorite category
+    // Favorite category (skip OTHER — not a meaningful genre)
     let favoriteCategory: string | null = null;
     let maxCatTime = 0;
     for (const [cat, time] of Object.entries(categoryBreakdown)) {
+      if (cat === "OTHER") continue;
       if (time > maxCatTime) {
         maxCatTime = time;
         favoriteCategory = cat;
       }
     }
 
-    // Top 5 programs by watch time
+    // Top 5 programs by watch time — skip orphan records
     const programStats = new Map<string, { title: string; totalTime: number }>();
-    for (const a of activities) {
-      const key = a.programId ?? a.matchId ?? "unknown";
+    for (const a of meaningful) {
+      const key = a.programId ?? a.matchId;
+      if (!key) continue;
       const title = a.program?.title
-        ?? (a.match ? `${a.match.homeTeam} vs ${a.match.awayTeam}` : "Unknown");
+        ?? (a.match ? `${a.match.homeTeam} vs ${a.match.awayTeam}` : "Untitled program");
       const existing = programStats.get(key);
       if (existing) {
         existing.totalTime += a.watchDuration;
@@ -69,7 +75,7 @@ export async function GET() {
     const weeklyHeatmap: number[][] = Array.from({ length: 7 }, () =>
       Array.from({ length: 24 }, () => 0)
     );
-    for (const a of activities) {
+    for (const a of meaningful) {
       const date = new Date(a.sessionStart);
       const day = date.getDay(); // 0=Sun
       const hour = date.getHours();
@@ -94,19 +100,32 @@ export async function GET() {
 
     // Total unique matches watched
     const totalMatches = new Set(
-      activities.filter((a) => a.matchId && a.action === "WATCH").map((a) => a.matchId)
+      meaningful.filter((a) => a.matchId && a.action === "WATCH").map((a) => a.matchId)
     ).size;
 
-    // Recent activity (last 10)
-    const recentActivity = activities.slice(0, 10).map((a) => ({
-      id: a.id,
-      action: a.action,
-      watchDuration: a.watchDuration,
-      title: a.program?.title
-        ?? (a.match ? `${a.match.homeTeam} vs ${a.match.awayTeam}` : null),
-      category: a.program?.category ?? (a.matchId ? "SPORTS" : null),
-      createdAt: a.createdAt,
-    }));
+    // Recent activity — deduplicate by program/match, sum durations, keep latest timestamp
+    const recentMap = new Map<
+      string,
+      { id: string; action: string; watchDuration: number; title: string | null; category: string | null; createdAt: Date }
+    >();
+    for (const a of meaningful) {
+      const key = a.programId ?? a.matchId;
+      if (!key) continue; // skip orphan records
+      const title = a.program?.title
+        ?? (a.match ? `${a.match.homeTeam} vs ${a.match.awayTeam}` : null);
+      if (!title) continue; // skip untitled
+      const category = a.program?.category ?? (a.matchId ? "SPORTS" : null);
+      const existing = recentMap.get(key);
+      if (existing) {
+        existing.watchDuration += a.watchDuration;
+        if (a.createdAt > existing.createdAt) existing.createdAt = a.createdAt;
+      } else {
+        recentMap.set(key, { id: a.id, action: a.action, watchDuration: a.watchDuration, title, category, createdAt: a.createdAt });
+      }
+    }
+    const recentActivity = Array.from(recentMap.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 10);
 
     // Generate text insights
     const insights = generateInsights({

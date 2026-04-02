@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
 import { StreamControls } from "@/components/stream-controls";
 import { useViewerCount } from "@/hooks/use-viewer-count";
+import { useTrackActivity } from "@/hooks/use-track-activity";
 import { api, ApiError } from "@/lib/api";
 import type Player from "video.js/dist/types/player";
 
@@ -47,6 +48,9 @@ export default function WatchPage({
 
   const channel = match?.streamKey ?? null;
   const viewers = useViewerCount({ channel });
+
+  // Track match viewing activity
+  useTrackActivity({ matchId: match?.id });
 
   const handleReady = useCallback((p: Player) => setPlayer(p), []);
 

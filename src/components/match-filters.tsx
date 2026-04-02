@@ -41,7 +41,7 @@ export function MatchFilters({ active, onChange, counts }: MatchFiltersProps) {
             {label}
             {counts[key] > 0 && (
               <span className={`ml-1.5 text-[10px] ${
-                active === key ? "text-primary" : "text-muted-foreground"
+                active === key ? "text-foreground" : "text-muted-foreground"
               }`}>
                 {counts[key]}
               </span>

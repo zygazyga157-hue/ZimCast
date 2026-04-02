@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
-                          {act.title ?? "Untitled"}
+                          {act.title ?? "—"}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {new Date(act.createdAt).toLocaleDateString("en-ZW", {

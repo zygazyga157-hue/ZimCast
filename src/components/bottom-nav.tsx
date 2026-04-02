@@ -31,7 +31,7 @@ export function BottomNav() {
               href={tab.href}
               className={`relative flex flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap text-[9px] font-medium leading-none transition-colors ${
                 isActive
-                  ? "text-primary"
+                  ? "text-foreground"
                   : "text-muted-foreground active:text-foreground"
               }`}
             >
@@ -39,7 +39,7 @@ export function BottomNav() {
                 <span className="gradient-accent absolute inset-x-3 top-0 h-0.5 rounded-full" />
               )}
               <tab.icon
-                className={`h-5 w-5 ${isActive ? "fill-primary/20" : ""}`}
+                className={`h-5 w-5 ${isActive ? "fill-foreground/20" : ""}`}
                 strokeWidth={isActive ? 2.5 : 2}
               />
               {tab.label}

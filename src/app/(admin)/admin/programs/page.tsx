@@ -233,7 +233,7 @@ export default function AdminProgramsPage() {
                 onChange={(e) =>
                   setForm({ ...form, category: e.target.value })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [color-scheme:dark]"
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
@@ -250,7 +250,7 @@ export default function AdminProgramsPage() {
                 onChange={(e) =>
                   setForm({ ...form, matchId: e.target.value })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [color-scheme:dark]"
               >
                 <option value="">None</option>
                 {matches.map((m) => (

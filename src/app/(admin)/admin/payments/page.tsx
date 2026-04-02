@@ -51,7 +51,7 @@ export default function AdminPaymentsPage() {
   }, [loadPayments]);
 
   const selectClass =
-    "flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+    "flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [color-scheme:dark]";
 
   if (loading) {
     return (

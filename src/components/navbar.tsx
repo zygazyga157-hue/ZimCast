@@ -1,11 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { User, LogOut, Tv, Trophy, Home, BarChart3, Shield } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Tv,
+  Trophy,
+  Home,
+  BarChart3,
+  Shield,
+  Radio,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +33,120 @@ const navLinks = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
+interface ProgramSummary {
+  id: string;
+  title: string;
+  category: string;
+  startTime: string;
+  endTime: string;
+  match?: { id: string; homeTeam: string; awayTeam: string } | null;
+}
+
+interface EpgSummary {
+  channel: string;
+  channelLabel: string;
+  currentProgram: ProgramSummary | null;
+  nextProgram: ProgramSummary | null;
+  ztvAvailable: boolean;
+  resumesAt: string | null;
+  blackoutMatch: { id: string; homeTeam: string; awayTeam: string } | null;
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [epg, setEpg] = useState<EpgSummary | null>(null);
+  const [epgLoaded, setEpgLoaded] = useState(false);
+  const [insight, setInsight] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch("/api/epg/summary");
+        if (!res.ok) return;
+        const data = (await res.json()) as EpgSummary;
+        if (cancelled) return;
+        setEpg(data);
+        setEpgLoaded(true);
+      } catch {
+        // Silent fail — header should not break navigation.
+      }
+    };
+
+    const initial = setTimeout(() => {
+      void fetchSummary();
+    }, 0);
+    const interval = setInterval(() => {
+      void fetchSummary();
+    }, 30_000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+
+    const fetchInsight = async () => {
+      try {
+        const res = await fetch("/api/user/insight");
+        if (!res.ok) return;
+        const data = (await res.json()) as { message?: string | null };
+        if (cancelled) return;
+        setInsight(data.message ?? null);
+      } catch {
+        // Silent fail — insight is optional.
+      }
+    };
+
+    const initial = setTimeout(() => {
+      void fetchInsight();
+    }, 0);
+    const interval = setInterval(() => {
+      void fetchInsight();
+    }, 10 * 60_000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, [session?.user?.id]);
+
+  const smartTitle =
+    pathname === "/"
+      ? "Recommended for You"
+      : pathname === "/live-tv" || pathname.startsWith("/live-tv/")
+        ? "Live Now"
+        : pathname === "/analytics" || pathname.startsWith("/analytics/")
+          ? "Your Insights"
+          : "ZimCast";
+
+  const currentTitle = epg?.currentProgram
+    ? epg.currentProgram.match
+      ? `${epg.currentProgram.match.homeTeam} vs ${epg.currentProgram.match.awayTeam}`
+      : epg.currentProgram.title
+    : null;
+
+  const nextTitle = epg?.nextProgram
+    ? epg.nextProgram.match
+      ? `${epg.nextProgram.match.homeTeam} vs ${epg.nextProgram.match.awayTeam}`
+      : epg.nextProgram.title
+    : null;
+
+  const resumesTime = epg?.resumesAt
+    ? new Date(epg.resumesAt).toLocaleTimeString("en-ZW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+    : null;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -100,7 +222,7 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/analytics" className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
-                    Analytics
+                    My Analytics
                   </Link>
                 </DropdownMenuItem>
                 {(session.user as { role?: string }).role === "ADMIN" && (
@@ -137,6 +259,65 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Smart context bar — Live EPG + personal insight */}
+      {epgLoaded && (
+        <div className="border-t border-border bg-background/60 px-4 py-2">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {epg?.ztvAvailable ? (
+                <Badge
+                  variant="outline"
+                  className="border-red-500/30 bg-red-500/10 text-red-400"
+                >
+                  <Radio className="h-3 w-3 animate-pulse" />
+                  LIVE NOW
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/30 bg-amber-500/10 text-amber-400"
+                >
+                  BLACKOUT
+                </Badge>
+              )}
+
+              {currentTitle ? (
+                <p className="min-w-0 truncate text-sm">
+                  <span className="font-semibold">
+                    {epg?.channelLabel ?? "ZTV"}
+                  </span>
+                  <span className="text-muted-foreground"> — </span>
+                  <span className="font-medium">{currentTitle}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No programs scheduled
+                </p>
+              )}
+
+              {nextTitle && (
+                <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">
+                  Next: {nextTitle}
+                </span>
+              )}
+
+              {!epg?.ztvAvailable && resumesTime && (
+                <span className="hidden text-xs text-amber-400 sm:inline">
+                  Resumes {resumesTime}
+                </span>
+              )}
+            </div>
+
+            <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+              <span className="hidden lg:inline">{smartTitle}</span>
+              {session?.user?.id && insight && (
+                <span className="max-w-[340px] truncate">{insight}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

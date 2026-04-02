@@ -21,6 +21,8 @@ export function useTrackActivity({
 
   const sendActivity = useCallback(async () => {
     if (durationRef.current === 0) return;
+    // Nothing to attribute — skip rather than create orphan "OTHER" records
+    if (!programId && !matchId) return;
 
     const duration = durationRef.current;
     durationRef.current = 0;

@@ -17,13 +17,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "action is required" }, { status: 400 });
     }
 
+    // Validate duration: must be a positive integer, at least 5 seconds
+    const duration = typeof watchDuration === "number" ? Math.max(0, Math.round(watchDuration)) : 0;
+    if (duration < 5) {
+      return NextResponse.json({ ok: true, skipped: true }, { status: 200 });
+    }
+
+    // Require at least one content reference to avoid orphan records
+    if (!programId && !matchId) {
+      return NextResponse.json({ ok: true, skipped: true }, { status: 200 });
+    }
+
     const activity = await prisma.viewingActivity.create({
       data: {
         userId: session.user.id,
         programId: programId || null,
         matchId: matchId || null,
         action: action || "WATCH",
-        watchDuration: watchDuration || 0,
+        watchDuration: duration,
         sessionStart: sessionStart ? new Date(sessionStart) : new Date(),
         sessionEnd: new Date(),
       },

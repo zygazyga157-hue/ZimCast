@@ -399,7 +399,7 @@ export default function ProfilePage() {
                         id="gender"
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [color-scheme:dark]"
                       >
                         <option value="">Select…</option>
                         <option value="Male">Male</option>
@@ -423,7 +423,7 @@ export default function ProfilePage() {
                         id="country"
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [color-scheme:dark]"
                       >
                         <option value="">Select…</option>
                         <option value="Zimbabwe">Zimbabwe</option>
@@ -470,7 +470,7 @@ export default function ProfilePage() {
                       id="language"
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [color-scheme:dark]"
                     >
                       {LANGUAGE_OPTIONS.map((lang) => (
                         <option key={lang} value={lang}>
@@ -666,7 +666,7 @@ export default function ProfilePage() {
                           >
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">
-                                {act.title ?? "Untitled"}
+                                {act.title ?? "—"}
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
                                 {new Date(act.createdAt).toLocaleDateString("en-ZW", {

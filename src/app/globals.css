@@ -93,6 +93,17 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Dark-themed native select dropdowns */
+select {
+  color-scheme: dark;
+  background-color: var(--card);
+  color: var(--foreground);
+}
+select option {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
 /* Auth page animated glow orbs */
 @keyframes float-slow {
   0%, 100% { transform: translate(0, 0) scale(1); }
