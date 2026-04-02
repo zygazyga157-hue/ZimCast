@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Radio, Lock, Calendar, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Radio, Lock, Calendar, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
@@ -13,6 +13,7 @@ import { StreamControls } from "@/components/stream-controls";
 import { useViewerCount } from "@/hooks/use-viewer-count";
 import { useTrackActivity } from "@/hooks/use-track-activity";
 import { api, ApiError } from "@/lib/api";
+import type { MatchPhase } from "@/lib/match-window";
 import type Player from "video.js/dist/types/player";
 
 const VideoPlayer = dynamic(() => import("@/components/video-player"), { ssr: false });
@@ -24,6 +25,10 @@ interface Match {
   kickoff: string;
   isLive: boolean;
   streamKey: string;
+  phase?: MatchPhase;
+  passStart?: string;
+  passEnd?: string;
+  phaseEndsAt?: string;
 }
 
 function getInitials(team: string): string {
@@ -44,15 +49,53 @@ export default function WatchPage({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState<number | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [countdown, setCountdown] = useState("");
+  const [passStartIso, setPassStartIso] = useState<string | null>(null);
 
-  const channel = match?.streamKey ?? null;
+  // Only register viewer count when actually playing
+  const channel = isPlaying && match?.streamKey ? match.streamKey : null;
   const viewers = useViewerCount({ channel });
 
-  // Track match viewing activity
-  useTrackActivity({ matchId: match?.id });
+  // Track match viewing activity only when playing
+  useTrackActivity({ matchId: match?.id, enabled: isPlaying });
 
-  const handleReady = useCallback((p: Player) => setPlayer(p), []);
+  const handleReady = useCallback((p: Player) => {
+    setPlayer(p);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false);
+    const onError = () => setIsPlaying(false);
+    p.on("play", onPlay);
+    p.on("pause", onPause);
+    p.on("ended", onEnded);
+    p.on("error", onError);
+  }, []);
+
+  // Countdown for pregame
+  useEffect(() => {
+    if (!passStartIso) return;
+    const target = new Date(passStartIso).getTime();
+    const update = () => {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        setCountdown("");
+        // Reload to request token now that window is open
+        window.location.reload();
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (h > 0) setCountdown(`${h}h ${m}m ${s}s`);
+      else setCountdown(`${m}m ${s}s`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [passStartIso]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -67,14 +110,26 @@ export default function WatchPage({
         const matchData = await api<Match>(`/api/matches/${id}`);
         setMatch(matchData);
 
-        const tokenData = await api<{ token: string; streamUrl: string }>(
-          "/api/streams/token",
-          { method: "POST", body: { matchId: id } }
-        );
+        const tokenData = await api<{
+          token: string;
+          streamUrl: string;
+          passEnd?: string;
+          expiresInSeconds?: number;
+        }>("/api/streams/token", { method: "POST", body: { matchId: id } });
         setStreamUrl(tokenData.streamUrl);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);
+          setErrorCode(err.status);
+          // If 409, the token route returned passStart info
+          if (err.status === 409) {
+            try {
+              const body = JSON.parse(err.message);
+              if (body.passStart) setPassStartIso(body.passStart);
+            } catch {
+              // Extract passStart from match data instead
+            }
+          }
         } else {
           setError("Failed to load the stream. Please try again.");
         }
@@ -86,6 +141,13 @@ export default function WatchPage({
     loadStream();
   }, [id, session, status, router]);
 
+  // If we got a 409 (before window) and have the match, derive passStart for countdown
+  useEffect(() => {
+    if (errorCode === 409 && match?.passStart && !passStartIso) {
+      setPassStartIso(match.passStart);
+    }
+  }, [errorCode, match, passStartIso]);
+
   if (status === "loading" || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -95,6 +157,74 @@ export default function WatchPage({
   }
 
   const kickoff = match ? new Date(match.kickoff) : null;
+
+  // Pregame waiting screen (409 — before pass window)
+  if (errorCode === 409 && match) {
+    return (
+      <PageTransition>
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+          <Link
+            href={`/sports/${id}`}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Match
+          </Link>
+
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+            <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-sm px-4 py-1">
+              STARTING SOON
+            </Badge>
+            <h2 className="text-xl font-semibold">
+              {match.homeTeam} vs {match.awayTeam}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              The stream will be available 15 minutes before kickoff.
+            </p>
+            {countdown && (
+              <div className="flex items-center gap-2 text-lg font-medium text-primary">
+                <Timer className="h-5 w-5" />
+                {countdown}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This page will auto-refresh when the stream is ready.
+            </p>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // Expired/ended screen (403 — pass expired)
+  if (errorCode === 403 && error.toLowerCase().includes("expired") && match) {
+    return (
+      <PageTransition>
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+          <Link
+            href={`/sports/${id}`}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Match
+          </Link>
+
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+            <Badge className="border-muted-foreground/30 bg-muted/30 text-muted-foreground text-sm px-4 py-1">
+              ENDED
+            </Badge>
+            <h2 className="text-xl font-semibold">Stream Ended</h2>
+            <p className="text-sm text-muted-foreground">
+              The access window for this match has ended.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href="/sports">Browse Matches</Link>
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>

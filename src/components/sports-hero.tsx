@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Trophy, Radio, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { MatchPhase } from "@/lib/match-window";
 
 interface Match {
   id: string;
@@ -14,6 +15,7 @@ interface Match {
   kickoff: string;
   price: string;
   isLive: boolean;
+  phase?: MatchPhase;
 }
 
 interface SportsHeroProps {
@@ -28,9 +30,11 @@ function getInitials(team: string): string {
 
 export function SportsHero({ match }: SportsHeroProps) {
   const [countdown, setCountdown] = useState("");
+  const phase = match.phase;
+  const isLive = phase === "LIVE" || phase === "POSTGAME" || match.isLive;
 
   useEffect(() => {
-    if (match.isLive) return;
+    if (isLive) return;
     const update = () => {
       const diff = new Date(match.kickoff).getTime() - Date.now();
       if (diff <= 0) { setCountdown("Starting now"); return; }
@@ -45,7 +49,7 @@ export function SportsHero({ match }: SportsHeroProps) {
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [match.kickoff, match.isLive]);
+  }, [match.kickoff, isLive]);
 
   const kickoff = new Date(match.kickoff);
   const dateStr = kickoff.toLocaleDateString("en-ZW", {
@@ -70,7 +74,7 @@ export function SportsHero({ match }: SportsHeroProps) {
         <div className="mb-6 flex items-center justify-center gap-2">
           <Trophy className="h-4 w-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-widest text-primary">
-            {match.isLive ? "Live Now" : "Featured Match"}
+            {isLive ? "Live Now" : phase === "PREGAME" ? "Starting Soon" : "Featured Match"}
           </span>
         </div>
 
@@ -126,10 +130,14 @@ export function SportsHero({ match }: SportsHeroProps) {
           transition={{ delay: 0.3 }}
           className="mt-6 flex flex-col items-center gap-3"
         >
-          {match.isLive ? (
+          {isLive ? (
             <Badge className="border-red-500/30 bg-red-500/10 text-red-400 text-sm px-4 py-1">
               <Radio className="mr-1.5 h-3.5 w-3.5 animate-pulse" />
               LIVE NOW
+            </Badge>
+          ) : phase === "PREGAME" ? (
+            <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-sm px-4 py-1">
+              STARTING SOON
             </Badge>
           ) : (
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -148,10 +156,10 @@ export function SportsHero({ match }: SportsHeroProps) {
           <div className="mt-2 flex items-center gap-3">
             <Button asChild className="gradient-accent border-0 text-white px-6">
               <Link href={`/sports/${match.id}`}>
-                {match.isLive ? "Watch Now" : "Get Match Pass"}
+                {isLive ? "Watch Now" : "Get Match Pass"}
               </Link>
             </Button>
-            {!match.isLive && (
+            {!isLive && (
               <span className="text-sm font-medium text-muted-foreground">
                 ${match.price}
               </span>

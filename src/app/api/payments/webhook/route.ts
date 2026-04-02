@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parsePaynowWebhook, isPaynowPaid } from "@/lib/paynow";
+import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
@@ -56,15 +57,30 @@ export async function POST(req: NextRequest) {
     const paid = isPaynowPaid(statusStr) || statusStr === "COMPLETED";
 
     if (paid) {
+      // Derive pass window from kickoff + linked SPORTS program
+      const linkedProgram = await prisma.program.findFirst({
+        where: { matchId: payment.matchId, category: "SPORTS" },
+        select: { endTime: true },
+        orderBy: { startTime: "asc" },
+      });
+      const { passEnd } = computePassWindow(
+        payment.match.kickoff,
+        linkedProgram?.endTime ?? null
+      );
+
+      // If match window already ended, mark payment failed
+      if (passEnd.getTime() <= Date.now()) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: "FAILED" },
+        });
+        return NextResponse.json({ message: "Match has ended, access not granted" });
+      }
+
       await prisma.payment.update({
         where: { id: payment.id },
         data: { status: "COMPLETED" },
       });
-
-      // Match pass expires at kickoff + 4 hours, or 4 hours from now — whichever is later
-      const matchEnd = new Date(payment.match.kickoff.getTime() + 4 * 60 * 60 * 1000);
-      const fromNow = new Date(Date.now() + 4 * 60 * 60 * 1000);
-      const expiresAt = matchEnd > fromNow ? matchEnd : fromNow;
 
       await prisma.matchPass.upsert({
         where: {
@@ -73,8 +89,8 @@ export async function POST(req: NextRequest) {
             matchId: payment.matchId,
           },
         },
-        create: { userId: payment.userId, matchId: payment.matchId, expiresAt },
-        update: { expiresAt },
+        create: { userId: payment.userId, matchId: payment.matchId, expiresAt: passEnd },
+        update: { expiresAt: passEnd },
       });
 
       return NextResponse.json({ message: "Payment confirmed, access granted" });

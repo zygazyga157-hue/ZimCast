@@ -26,7 +26,7 @@ const emptyStates: Record<MatchFilter, { icon: typeof Trophy; title: string; des
   },
   past: {
     icon: Search,
-    title: "No past matches",
+    title: "No ended matches",
     description: "Completed matches will appear here for reference.",
   },
 };

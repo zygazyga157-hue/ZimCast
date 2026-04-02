@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Radio, Timer } from "lucide-react";
+import { Calendar, Clock, Radio, Timer, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { MatchPhase } from "@/lib/match-window";
 
 interface Match {
   id: string;
@@ -13,6 +14,7 @@ interface Match {
   kickoff: string;
   price: string;
   isLive: boolean;
+  phase?: MatchPhase;
 }
 
 interface MatchCardProps {
@@ -28,9 +30,13 @@ function getInitials(team: string): string {
 
 export function MatchCard({ match, index = 0 }: MatchCardProps) {
   const [countdown, setCountdown] = useState("");
+  const phase = match.phase;
+  const isLive = phase === "LIVE" || phase === "POSTGAME" || match.isLive;
+  const isEnded = phase === "ENDED";
+  const isPregame = phase === "PREGAME";
 
   useEffect(() => {
-    if (match.isLive) return;
+    if (isLive || isEnded) return;
     const diff = new Date(match.kickoff).getTime() - Date.now();
     if (diff <= 0) return;
 
@@ -50,7 +56,7 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [match.kickoff, match.isLive]);
+  }, [match.kickoff, isLive, isEnded]);
 
   const kickoff = new Date(match.kickoff);
   const dateStr = kickoff.toLocaleDateString("en-ZW", {
@@ -71,7 +77,7 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
         className="group relative block overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
       >
         {/* Live accent bar */}
-        {match.isLive && (
+        {isLive && (
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-red-500 via-orange-500 to-red-500" />
         )}
 
@@ -118,10 +124,19 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              {match.isLive ? (
+              {isLive ? (
                 <Badge variant="outline" className="border-red-500/30 bg-red-500/10 text-red-400 text-[10px]">
                   <Radio className="mr-1 h-2.5 w-2.5 animate-pulse" />
                   LIVE
+                </Badge>
+              ) : isEnded ? (
+                <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground text-[10px]">
+                  <CheckCircle2 className="mr-1 h-2.5 w-2.5" />
+                  ENDED
+                </Badge>
+              ) : isPregame ? (
+                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px]">
+                  STARTING SOON
                 </Badge>
               ) : countdown ? (
                 <span className="flex items-center gap-1 text-[11px] font-medium text-primary">

@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { api, showApiError } from "@/lib/api";
 import { toast } from "sonner";
+import type { MatchPhase } from "@/lib/match-window";
 
 interface Match {
   id: string;
@@ -25,6 +26,7 @@ interface Match {
   price: string;
   streamKey: string;
   isLive: boolean;
+  phase?: MatchPhase;
 }
 
 const emptyForm = {
@@ -286,24 +288,37 @@ export default function AdminMatchesPage() {
                   </td>
                   <td className="px-5 py-3">${m.price}</td>
                   <td className="px-5 py-3">
-                    <button onClick={() => toggleLive(m)}>
-                      {m.isLive ? (
-                        <Badge
-                          variant="outline"
-                          className="cursor-pointer border-red-500/30 bg-red-500/10 text-red-400 text-[10px]"
-                        >
-                          <Radio className="mr-1 h-2.5 w-2.5 animate-pulse" />
-                          LIVE
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="cursor-pointer text-[10px]"
-                        >
-                          OFFLINE
-                        </Badge>
+                    <div className="flex flex-col gap-1">
+                      <button onClick={() => toggleLive(m)}>
+                        {m.isLive ? (
+                          <Badge
+                            variant="outline"
+                            className="cursor-pointer border-red-500/30 bg-red-500/10 text-red-400 text-[10px]"
+                          >
+                            <Radio className="mr-1 h-2.5 w-2.5 animate-pulse" />
+                            LIVE
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="cursor-pointer text-[10px]"
+                          >
+                            OFFLINE
+                          </Badge>
+                        )}
+                      </button>
+                      {m.phase && m.phase !== "UPCOMING" && (
+                        <span className={`text-[10px] ${
+                          m.phase === "LIVE" && !m.isLive
+                            ? "font-semibold text-amber-400"
+                            : "text-muted-foreground"
+                        }`}>
+                          {m.phase === "LIVE" && !m.isLive
+                            ? "⚠ Should be live"
+                            : m.phase}
+                        </span>
                       )}
-                    </button>
+                    </div>
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">

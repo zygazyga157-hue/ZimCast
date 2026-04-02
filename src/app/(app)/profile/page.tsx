@@ -70,6 +70,10 @@ interface Pass {
   id: string;
   matchId: string;
   expiresAt: string;
+  passStart?: string;
+  passEnd?: string;
+  passState?: string;
+  phase?: string;
   match: {
     homeTeam: string;
     awayTeam: string;
@@ -719,6 +723,14 @@ export default function ProfilePage() {
 }
 
 function PassCard({ pass, active }: { pass: Pass; active: boolean }) {
+  const isUpcoming = pass.passState === "OWNED_UPCOMING";
+  const passStartTime = pass.passStart
+    ? new Date(pass.passStart).toLocaleTimeString("en-ZW", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
     <div
       className={`flex items-center justify-between rounded-lg border p-4 ${
@@ -742,17 +754,31 @@ function PassCard({ pass, active }: { pass: Pass; active: boolean }) {
       </div>
       <div className="flex items-center gap-2">
         {active ? (
-          <>
-            <Badge
-              variant="outline"
-              className="border-green-500/30 bg-green-500/10 text-green-400"
-            >
-              Active
-            </Badge>
-            <Button size="sm" variant="outline" asChild>
-              <Link href={`/watch/${pass.matchId}`}>Watch</Link>
-            </Button>
-          </>
+          isUpcoming ? (
+            <>
+              <Badge
+                variant="outline"
+                className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px]"
+              >
+                Starts at {passStartTime}
+              </Badge>
+              <Button size="sm" variant="outline" disabled>
+                Watch
+              </Button>
+            </>
+          ) : (
+            <>
+              <Badge
+                variant="outline"
+                className="border-green-500/30 bg-green-500/10 text-green-400"
+              >
+                Active
+              </Badge>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/watch/${pass.matchId}`}>Watch</Link>
+              </Button>
+            </>
+          )
         ) : (
           <Badge variant="outline" className="text-muted-foreground">
             Expired

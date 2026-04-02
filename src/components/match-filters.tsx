@@ -14,7 +14,7 @@ const filters: { key: MatchFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "live", label: "Live" },
   { key: "upcoming", label: "Upcoming" },
-  { key: "past", label: "Past" },
+  { key: "past", label: "Ended" },
 ];
 
 export function MatchFilters({ active, onChange, counts }: MatchFiltersProps) {

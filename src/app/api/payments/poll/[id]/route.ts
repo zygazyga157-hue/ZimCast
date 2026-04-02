@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pollPaynowTransaction, isPaynowPaid } from "@/lib/paynow";
+import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
 
 /**
@@ -75,9 +76,28 @@ export async function GET(
       isPaynowPaid(pollResponse.redirectUrl ?? "");
 
     if (paid) {
-      const matchEnd = new Date(payment.match.kickoff.getTime() + 4 * 60 * 60 * 1000);
-      const fromNow = new Date(Date.now() + 4 * 60 * 60 * 1000);
-      const expiresAt = matchEnd > fromNow ? matchEnd : fromNow;
+      // Derive pass window from kickoff + linked SPORTS program
+      const linkedProgram = await prisma.program.findFirst({
+        where: { matchId: payment.matchId, category: "SPORTS" },
+        select: { endTime: true },
+        orderBy: { startTime: "asc" },
+      });
+      const { passEnd } = computePassWindow(
+        payment.match.kickoff,
+        linkedProgram?.endTime ?? null
+      );
+
+      // If the match window has already ended, don't grant access
+      if (passEnd.getTime() <= Date.now()) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: "FAILED" },
+        });
+        return NextResponse.json(
+          { status: "FAILED", hasAccess: false, matchId: payment.matchId, error: "This match has ended" },
+          { status: 409 }
+        );
+      }
 
       await prisma.$transaction([
         prisma.payment.update({
@@ -94,9 +114,9 @@ export async function GET(
           create: {
             userId: payment.userId,
             matchId: payment.matchId,
-            expiresAt,
+            expiresAt: passEnd,
           },
-          update: { expiresAt },
+          update: { expiresAt: passEnd },
         }),
       ]);
 

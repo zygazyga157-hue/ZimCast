@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { initiatePaynowPayment, initiatePaynowMobile } from "@/lib/paynow";
+import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
 
 export async function POST(req: Request) {
@@ -45,7 +46,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Check if user already has a valid pass
+    // Compute pass window — block purchases after match window ends
+    const linkedProgram = await prisma.program.findFirst({
+      where: { matchId, category: "SPORTS" },
+      select: { endTime: true },
+      orderBy: { startTime: "asc" },
+    });
+    const { passEnd } = computePassWindow(
+      match.kickoff,
+      linkedProgram?.endTime ?? null
+    );
+
+    if (Date.now() >= passEnd.getTime()) {
+      return NextResponse.json(
+        { error: "This match has ended" },
+        { status: 409 }
+      );
+    }
+
+    // Check if user already has a valid pass (within window)
     const existingPass = await prisma.matchPass.findUnique({
       where: {
         userId_matchId: {

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PageTransition } from "@/components/page-transition";
 import { api, showApiError } from "@/lib/api";
+import type { MatchPhase } from "@/lib/match-window";
 
 interface Match {
   id: string;
@@ -32,6 +33,10 @@ interface Match {
   price: string;
   isLive: boolean;
   streamKey: string;
+  phase?: MatchPhase;
+  passStart?: string;
+  passEnd?: string;
+  phaseEndsAt?: string;
 }
 
 type PaymentStep = "details" | "paying" | "polling" | "success" | "error";
@@ -64,9 +69,16 @@ export default function MatchDetailPage({
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
-    if (!match || match.isLive) return;
+    if (!match) return;
+    const phase = match.phase;
+    if (phase === "LIVE" || phase === "POSTGAME" || phase === "ENDED") return;
+    const target = phase === "PREGAME"
+      ? new Date(match.kickoff).getTime()
+      : match.passStart
+        ? new Date(match.passStart).getTime()
+        : new Date(match.kickoff).getTime();
     const update = () => {
-      const diff = new Date(match.kickoff).getTime() - Date.now();
+      const diff = target - Date.now();
       if (diff <= 0) { setCountdown("Starting now"); return; }
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
@@ -85,7 +97,7 @@ export default function MatchDetailPage({
     Promise.all([
       api<Match>(`/api/matches/${id}`),
       session
-        ? api<Array<{ matchId: string; expiresAt: string }>>("/api/user/passes")
+        ? api<Array<{ matchId: string; expiresAt: string; passStart: string; passEnd: string; passState: string }>>("/api/user/passes")
         : Promise.resolve([]),
     ])
       .then(([matchData, passesData]) => {
@@ -94,7 +106,7 @@ export default function MatchDetailPage({
         setHasPass(
           passes.some(
             (p) =>
-              p.matchId === id && new Date(p.expiresAt) > new Date()
+              p.matchId === id && new Date(p.passEnd ?? p.expiresAt) > new Date()
           )
         );
       })
@@ -220,10 +232,18 @@ export default function MatchDetailPage({
           <div className="relative px-6 py-8 sm:px-10 sm:py-10">
             {/* Status badge */}
             <div className="mb-6 flex justify-center">
-              {match.isLive ? (
+              {match.phase === "LIVE" || match.phase === "POSTGAME" ? (
                 <Badge className="border-red-500/30 bg-red-500/10 text-red-400 text-sm px-4 py-1">
                   <Radio className="mr-1.5 h-3.5 w-3.5 animate-pulse" />
-                  LIVE NOW
+                  {match.phase === "POSTGAME" ? "POST-MATCH" : "LIVE NOW"}
+                </Badge>
+              ) : match.phase === "PREGAME" ? (
+                <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-sm px-4 py-1">
+                  STARTING SOON
+                </Badge>
+              ) : match.phase === "ENDED" ? (
+                <Badge className="border-muted-foreground/30 bg-muted/30 text-muted-foreground text-sm px-4 py-1">
+                  MATCH ENDED
                 </Badge>
               ) : (
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -285,10 +305,10 @@ export default function MatchDetailPage({
             </div>
 
             {/* Countdown or Price */}
-            {!match.isLive && countdown && (
+            {match.phase !== "ENDED" && !["LIVE", "POSTGAME"].includes(match.phase ?? "") && countdown && (
               <div className="mt-5 flex items-center justify-center gap-2 text-sm font-medium text-primary">
                 <Timer className="h-4 w-4" />
-                Starts in {countdown}
+                {match.phase === "PREGAME" ? `Kickoff in ${countdown}` : `Starts in ${countdown}`}
               </div>
             )}
           </div>
@@ -296,24 +316,95 @@ export default function MatchDetailPage({
 
         {/* Access / Payment */}
         <div className="mt-6 rounded-xl border border-border bg-card p-6">
-          {hasPass ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-4"
-            >
-              <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-              <h2 className="mt-4 text-xl font-bold">You Have Access!</h2>
+          {match.phase === "ENDED" && !hasPass ? (
+            <div className="text-center py-4">
+              <h2 className="text-lg font-semibold">Match Ended</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Your match pass is active. Start watching now.
+                This match has ended. Browse other matches below.
               </p>
-              <Button
-                className="gradient-accent mt-6 border-0 px-8 text-white"
-                asChild
-              >
-                <Link href={`/watch/${match.id}`}>Watch Now</Link>
+              <Button className="mt-6" variant="outline" asChild>
+                <Link href="/sports">Browse Matches</Link>
               </Button>
-            </motion.div>
+            </div>
+          ) : hasPass ? (
+            (() => {
+              const passStart = match.passStart ? new Date(match.passStart) : null;
+              const passEnd = match.passEnd ? new Date(match.passEnd) : null;
+              const now = Date.now();
+              const isBeforeWindow = passStart && now < passStart.getTime();
+              const isExpired = passEnd && now >= passEnd.getTime();
+
+              if (isExpired) {
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-4"
+                  >
+                    <Badge className="border-muted-foreground/30 bg-muted/30 text-muted-foreground mb-4">
+                      EXPIRED
+                    </Badge>
+                    <h2 className="text-xl font-bold">Pass Expired</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Your match pass has expired.
+                    </p>
+                    <Button className="mt-6" variant="outline" asChild>
+                      <Link href="/sports">Browse Matches</Link>
+                    </Button>
+                  </motion.div>
+                );
+              }
+
+              if (isBeforeWindow) {
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-4"
+                  >
+                    <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
+                    <h2 className="mt-4 text-xl font-bold">Pass Purchased</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Available at{" "}
+                      <span className="font-medium text-foreground">
+                        {passStart!.toLocaleTimeString("en-ZW", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </span>{" "}
+                      (15 min before kickoff).
+                    </p>
+                    <Button
+                      className="gradient-accent mt-6 border-0 px-8 text-white opacity-50 cursor-not-allowed"
+                      disabled
+                    >
+                      Watch Now
+                    </Button>
+                  </motion.div>
+                );
+              }
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-4"
+                >
+                  <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
+                  <h2 className="mt-4 text-xl font-bold">You Have Access!</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Your match pass is active. Start watching now.
+                  </p>
+                  <Button
+                    className="gradient-accent mt-6 border-0 px-8 text-white"
+                    asChild
+                  >
+                    <Link href={`/watch/${match.id}`}>Watch Now</Link>
+                  </Button>
+                </motion.div>
+              );
+            })()
           ) : paymentStep === "success" ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}

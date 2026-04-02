@@ -7,6 +7,8 @@ interface UseTrackActivityOptions {
   matchId?: string | null;
   action?: string;
   intervalMs?: number;
+  /** When false, time accumulation and sending are paused (default: true) */
+  enabled?: boolean;
 }
 
 export function useTrackActivity({
@@ -14,6 +16,7 @@ export function useTrackActivity({
   matchId,
   action = "WATCH",
   intervalMs = 30000,
+  enabled = true,
 }: UseTrackActivityOptions) {
   const sessionStartRef = useRef<string>(new Date().toISOString());
   const durationRef = useRef(0);
@@ -45,6 +48,7 @@ export function useTrackActivity({
   }, [programId, matchId, action]);
 
   useEffect(() => {
+    if (!enabled) return;
     sessionStartRef.current = new Date().toISOString();
     durationRef.current = 0;
 
@@ -68,5 +72,5 @@ export function useTrackActivity({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       sendActivity(); // Send remaining on unmount
     };
-  }, [programId, matchId, sendActivity, intervalMs]);
+  }, [programId, matchId, sendActivity, intervalMs, enabled]);
 }

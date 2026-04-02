@@ -10,6 +10,7 @@ import { SportsHero } from "@/components/sports-hero";
 import { MatchCard } from "@/components/match-card";
 import { MatchFilters, type MatchFilter } from "@/components/match-filters";
 import { EmptyMatches } from "@/components/empty-matches";
+import type { MatchPhase } from "@/lib/match-window";
 import { api, showApiError } from "@/lib/api";
 
 interface Match {
@@ -19,6 +20,9 @@ interface Match {
   kickoff: string;
   price: string;
   isLive: boolean;
+  phase?: MatchPhase;
+  passStart?: string;
+  passEnd?: string;
 }
 
 interface EpgProgram {
@@ -65,32 +69,34 @@ export default function SportsPage() {
     loadData();
   }, [loadData]);
 
-  const now = Date.now();
-  const liveMatches = useMemo(() => matches.filter((m) => m.isLive), [matches]);
-  const upcomingMatches = useMemo(
-    () => matches.filter((m) => !m.isLive && new Date(m.kickoff).getTime() > now),
-    [matches, now]
+  const liveMatches = useMemo(
+    () => matches.filter((m) => m.phase === "LIVE" || m.phase === "PREGAME" || m.phase === "POSTGAME"),
+    [matches]
   );
-  const pastMatches = useMemo(
-    () => matches.filter((m) => !m.isLive && new Date(m.kickoff).getTime() <= now),
-    [matches, now]
+  const upcomingMatches = useMemo(
+    () => matches.filter((m) => m.phase === "UPCOMING"),
+    [matches]
+  );
+  const endedMatches = useMemo(
+    () => matches.filter((m) => m.phase === "ENDED"),
+    [matches]
   );
 
   const counts: Record<MatchFilter, number> = {
     all: matches.length,
     live: liveMatches.length,
     upcoming: upcomingMatches.length,
-    past: pastMatches.length,
+    past: endedMatches.length,
   };
 
   const filteredMatches = useMemo(() => {
     switch (filter) {
       case "live": return liveMatches;
       case "upcoming": return upcomingMatches;
-      case "past": return pastMatches;
+      case "past": return endedMatches;
       default: return matches;
     }
-  }, [filter, matches, liveMatches, upcomingMatches, pastMatches]);
+  }, [filter, matches, liveMatches, upcomingMatches, endedMatches]);
 
   // Featured match: first live match, or next upcoming
   const heroMatch = liveMatches[0] ?? upcomingMatches[0];
@@ -131,7 +137,7 @@ export default function SportsPage() {
                     {epgSports.map((prog) => {
                       const start = new Date(prog.startTime);
                       const end = new Date(prog.endTime);
-                      const isNow = start.getTime() <= now && end.getTime() > now;
+                      const isNow = start.getTime() <= Date.now() && end.getTime() > Date.now();
                       const startStr = start.toLocaleTimeString("en-ZW", { hour: "2-digit", minute: "2-digit", hour12: false });
                       const endStr = end.toLocaleTimeString("en-ZW", { hour: "2-digit", minute: "2-digit", hour12: false });
 
