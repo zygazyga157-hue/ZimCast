@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,17 @@ interface Match {
   streamKey: string;
   isLive: boolean;
   phase?: MatchPhase;
+  zplsFixtureId?: string | null;
+}
+
+interface ZplsFixture {
+  id: string;
+  home_name: string;
+  away_name: string;
+  date: string;
+  time: string;
+  location: string;
+  round: string;
 }
 
 const emptyForm = {
@@ -35,6 +47,7 @@ const emptyForm = {
   kickoff: "",
   price: "",
   streamKey: "",
+  zplsFixtureId: "",
 };
 
 export default function AdminMatchesPage() {
@@ -44,6 +57,9 @@ export default function AdminMatchesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [zplsFixtures, setZplsFixtures] = useState<ZplsFixture[]>([]);
+  const [zplsLoading, setZplsLoading] = useState(false);
+  const [zplsSearch, setZplsSearch] = useState("");
 
   const loadMatches = useCallback(async () => {
     try {
@@ -73,6 +89,7 @@ export default function AdminMatchesPage() {
       kickoff: m.kickoff.slice(0, 16),
       price: m.price,
       streamKey: m.streamKey,
+      zplsFixtureId: m.zplsFixtureId ?? "",
     });
     setEditingId(m.id);
     setShowForm(true);
@@ -88,18 +105,25 @@ export default function AdminMatchesPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {
+        ...form,
+        price: parseFloat(form.price),
+        zplsFixtureId: form.zplsFixtureId || null,
+      };
       if (editingId) {
-        await api(`/api/admin/matches/${editingId}`, {
+        const result = await api<{ programWarning?: string }>(`/api/admin/matches/${editingId}`, {
           method: "PATCH",
-          body: { ...form, price: parseFloat(form.price) },
+          body: payload,
         });
         toast.success("Match updated");
+        if (result.programWarning) toast.warning(result.programWarning);
       } else {
-        await api("/api/admin/matches", {
+        const result = await api<{ programWarning?: string }>("/api/admin/matches", {
           method: "POST",
-          body: { ...form, price: parseFloat(form.price) },
+          body: payload,
         });
-        toast.success("Match created");
+        toast.success("Match created — program auto-linked");
+        if (result.programWarning) toast.warning(result.programWarning);
       }
       closeForm();
       await loadMatches();
@@ -108,6 +132,29 @@ export default function AdminMatchesPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function loadZplsFixtures() {
+    setZplsLoading(true);
+    try {
+      const data = await api<{ fixtures: ZplsFixture[] }>("/api/zpls/fixtures");
+      setZplsFixtures(data.fixtures ?? []);
+    } catch {
+      toast.error("Failed to load ZPLS fixtures");
+    } finally {
+      setZplsLoading(false);
+    }
+  }
+
+  function selectFixture(fixture: ZplsFixture) {
+    setForm({
+      ...form,
+      homeTeam: fixture.home_name,
+      awayTeam: fixture.away_name,
+      kickoff: `${fixture.date}T${fixture.time.slice(0, 5)}`,
+      zplsFixtureId: fixture.id,
+    });
+    setZplsSearch("");
   }
 
   async function toggleLive(m: Match) {
@@ -175,6 +222,76 @@ export default function AdminMatchesPage() {
             </Button>
           </div>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+            {/* ZPLS Fixture Picker */}
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Link ZPLS Fixture (optional)</Label>
+              {form.zplsFixtureId ? (
+                <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-2 text-sm">
+                  <Badge variant="outline" className="border-green-500/30 bg-green-500/10 text-green-400 text-[10px]">
+                    LINKED
+                  </Badge>
+                  <span className="text-muted-foreground">Fixture #{form.zplsFixtureId}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto h-6 w-6"
+                    onClick={() => setForm({ ...form, zplsFixtureId: "" })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={loadZplsFixtures}
+                      disabled={zplsLoading}
+                    >
+                      {zplsLoading ? (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      ) : (
+                        <Search className="mr-1 h-3 w-3" />
+                      )}
+                      Load ZPLS Fixtures
+                    </Button>
+                    {zplsFixtures.length > 0 && (
+                      <Input
+                        placeholder="Filter fixtures..."
+                        className="max-w-[200px] h-8 text-xs"
+                        value={zplsSearch}
+                        onChange={(e) => setZplsSearch(e.target.value)}
+                      />
+                    )}
+                  </div>
+                  {zplsFixtures.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-border">
+                      {zplsFixtures
+                        .filter((f) => {
+                          if (!zplsSearch) return true;
+                          const q = zplsSearch.toLowerCase();
+                          return f.home_name.toLowerCase().includes(q) || f.away_name.toLowerCase().includes(q);
+                        })
+                        .map((f) => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-muted/50 border-b border-border last:border-0"
+                            onClick={() => selectFixture(f)}
+                          >
+                            <span className="font-medium">{f.home_name} vs {f.away_name}</span>
+                            <span className="text-muted-foreground">{f.date} • R{f.round}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="homeTeam">Home Team</Label>
               <Input

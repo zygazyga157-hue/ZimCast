@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
+import { getFixtureScore } from "@/lib/zpls";
 
 export async function GET(
   _req: NextRequest,
@@ -20,6 +21,7 @@ export async function GET(
         price: true,
         isLive: true,
         streamKey: true,
+        zplsFixtureId: true,
       },
     });
 
@@ -39,12 +41,23 @@ export async function GET(
       linkedProgram?.endTime ?? null
     );
 
+    // Enrich with ZPLS score data if linked
+    let zpls = null;
+    if (match.zplsFixtureId) {
+      try {
+        zpls = await getFixtureScore(match.zplsFixtureId);
+      } catch {
+        // Score enrichment failed — acceptable
+      }
+    }
+
     return NextResponse.json({
       ...match,
       passStart: passStart.toISOString(),
       passEnd: passEnd.toISOString(),
       phase,
       phaseEndsAt: phaseEndsAt.toISOString(),
+      zpls,
     });
   } catch (error) {
     return handleApiError(error, "Match detail error");

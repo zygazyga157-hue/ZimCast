@@ -3,21 +3,39 @@ import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
+import { getFixtureScore } from "@/lib/zpls";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status"); // upcoming | live | ended | all
+    const dateParam = searchParams.get("date"); // YYYY-MM-DD, defaults to today
+
+    // Resolve target date
+    const targetDate = dateParam ? new Date(dateParam) : new Date();
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    const dateKey = dayStart.toISOString().slice(0, 10);
 
     // Check cache
-    const cacheKey = `matches:${status || "all"}`;
+    const cacheKey = `matches:${dateKey}:${status || "all"}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return NextResponse.json(JSON.parse(cached));
     }
 
-    // Fetch all matches — we'll filter by derived phase
+    // Fetch matches with kickoff on the target date,
+    // plus any match that might still be in an active window (PREGAME/LIVE/POSTGAME).
+    // Active-window matches have passEnd > now, so we include matches from the
+    // day before as well (a match at 23:00 yesterday could still be in POSTGAME).
+    const lookbackStart = new Date(dayStart.getTime() - 24 * 60 * 60 * 1000);
+
     const matches = await prisma.match.findMany({
+      where: {
+        kickoff: { gte: lookbackStart, lte: dayEnd },
+      },
       orderBy: { kickoff: "asc" },
       select: {
         id: true,
@@ -26,6 +44,7 @@ export async function GET(req: NextRequest) {
         kickoff: true,
         price: true,
         isLive: true,
+        zplsFixtureId: true,
       },
     });
 
@@ -56,16 +75,41 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // Enrich linked matches with ZPLS live scores (best-effort)
+    const enrichedWithScores = await Promise.all(
+      enriched.map(async (m) => {
+        if (!m.zplsFixtureId) return m;
+        try {
+          const score = await getFixtureScore(m.zplsFixtureId);
+          if (score) {
+            return { ...m, zpls: score };
+          }
+        } catch {
+          // Score enrichment failed — acceptable
+        }
+        return m;
+      })
+    );
+
+    // Date filter: keep matches whose kickoff falls on the target date,
+    // plus any match still in an active window (PREGAME/LIVE/POSTGAME)
+    const dateFiltered = enrichedWithScores.filter((m) => {
+      const kickoffDate = new Date(m.kickoff);
+      const isToday = kickoffDate >= dayStart && kickoffDate <= dayEnd;
+      const isActive = m.phase === "PREGAME" || m.phase === "LIVE" || m.phase === "POSTGAME";
+      return isToday || isActive;
+    });
+
     // Filter by derived phase
-    let filtered = enriched;
+    let filtered = dateFiltered;
     if (status === "live") {
-      filtered = enriched.filter(
+      filtered = dateFiltered.filter(
         (m) => m.phase === "LIVE" || m.phase === "PREGAME" || m.phase === "POSTGAME"
       );
     } else if (status === "upcoming") {
-      filtered = enriched.filter((m) => m.phase === "UPCOMING");
+      filtered = dateFiltered.filter((m) => m.phase === "UPCOMING");
     } else if (status === "ended") {
-      filtered = enriched.filter((m) => m.phase === "ENDED");
+      filtered = dateFiltered.filter((m) => m.phase === "ENDED");
     }
 
     const response = { matches: filtered };

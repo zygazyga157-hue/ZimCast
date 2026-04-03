@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
+import { updateMatchProgram } from "@/lib/match-program";
 
 export async function PATCH(
   req: NextRequest,
@@ -31,6 +32,7 @@ export async function PATCH(
         ...(body.price !== undefined && { price: body.price }),
         ...(body.streamKey !== undefined && { streamKey: body.streamKey }),
         ...(body.isLive !== undefined && { isLive: body.isLive }),
+        ...(body.zplsFixtureId !== undefined && { zplsFixtureId: body.zplsFixtureId }),
       },
     });
 
@@ -38,7 +40,20 @@ export async function PATCH(
     const keys = await redis.keys("matches:*");
     if (keys.length > 0) await redis.del(...keys);
 
-    return NextResponse.json(match);
+    // Sync linked program when kickoff or teams change
+    let programWarning: string | undefined;
+    if (body.kickoff !== undefined || body.homeTeam !== undefined || body.awayTeam !== undefined) {
+      const result = await updateMatchProgram(
+        match.id,
+        match.homeTeam,
+        match.awayTeam,
+        new Date(match.kickoff),
+        match.streamKey
+      );
+      programWarning = result.warning;
+    }
+
+    return NextResponse.json({ ...match, programWarning });
   } catch (error) {
     return handleApiError(error, "Update match error");
   }

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
+import { createMatchProgram } from "@/lib/match-program";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { homeTeam, awayTeam, kickoff, price, streamKey } = body;
+    const { homeTeam, awayTeam, kickoff, price, streamKey, zplsFixtureId } = body;
 
     if (!homeTeam || !awayTeam || !kickoff || price == null || !streamKey) {
       return NextResponse.json(
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
         kickoff: new Date(kickoff),
         price,
         streamKey,
+        ...(zplsFixtureId !== undefined && { zplsFixtureId }),
       },
     });
 
@@ -35,7 +37,19 @@ export async function POST(req: NextRequest) {
     const keys = await redis.keys("matches:*");
     if (keys.length > 0) await redis.del(...keys);
 
-    return NextResponse.json(match, { status: 201 });
+    // Auto-create linked SPORTS program for the match
+    const { programId, warning: programWarning } = await createMatchProgram(
+      match.id,
+      homeTeam,
+      awayTeam,
+      new Date(kickoff),
+      streamKey
+    );
+
+    return NextResponse.json(
+      { ...match, programId, programWarning },
+      { status: 201 }
+    );
   } catch (error) {
     return handleApiError(error, "Create match error");
   }

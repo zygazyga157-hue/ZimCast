@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Trophy, Radio, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MatchPhase } from "@/lib/match-window";
+
+interface ZplsScore {
+  score: string;
+  ht_score: string;
+  ft_score: string;
+  status: string;
+  time: string;
+  home_logo: string;
+  away_logo: string;
+}
 
 interface Match {
   id: string;
@@ -16,6 +27,7 @@ interface Match {
   price: string;
   isLive: boolean;
   phase?: MatchPhase;
+  zpls?: ZplsScore | null;
 }
 
 interface SportsHeroProps {
@@ -87,24 +99,46 @@ export function SportsHero({ match }: SportsHeroProps) {
             transition={{ delay: 0.1, duration: 0.4 }}
             className="flex flex-col items-center gap-3"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-lg font-bold text-primary sm:h-20 sm:w-20 sm:text-xl">
-              {getInitials(match.homeTeam)}
-            </div>
+            {match.zpls?.home_logo ? (
+              <Image
+                src={match.zpls.home_logo}
+                alt={match.homeTeam}
+                width={80}
+                height={80}
+                className="h-16 w-16 rounded-full object-contain sm:h-20 sm:w-20"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-lg font-bold text-primary sm:h-20 sm:w-20 sm:text-xl">
+                {getInitials(match.homeTeam)}
+              </div>
+            )}
             <p className="max-w-[120px] text-center text-sm font-semibold sm:text-base">
               {match.homeTeam}
             </p>
           </motion.div>
 
-          {/* VS Divider */}
+          {/* VS Divider / Score */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}
             className="flex flex-col items-center gap-2"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-accent text-sm font-black text-white shadow-lg shadow-primary/20">
-              VS
-            </div>
+            {match.zpls?.score ? (
+              <div className="flex flex-col items-center">
+                <span className="text-2xl font-black tabular-nums sm:text-3xl">{match.zpls.score}</span>
+                {(match.zpls.status === "IN PLAY" || match.zpls.status === "HALF TIME BREAK" || match.zpls.status === "ADDED TIME") && (
+                  <span className="text-xs font-medium text-red-400 animate-pulse">{match.zpls.time}&apos;</span>
+                )}
+                {match.zpls.ht_score && (
+                  <span className="text-[10px] text-muted-foreground mt-1">HT: {match.zpls.ht_score}</span>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-accent text-sm font-black text-white shadow-lg shadow-primary/20">
+                VS
+              </div>
+            )}
           </motion.div>
 
           {/* Away Team */}
@@ -114,9 +148,19 @@ export function SportsHero({ match }: SportsHeroProps) {
             transition={{ delay: 0.1, duration: 0.4 }}
             className="flex flex-col items-center gap-3"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/10 text-lg font-bold text-accent sm:h-20 sm:w-20 sm:text-xl">
-              {getInitials(match.awayTeam)}
-            </div>
+            {match.zpls?.away_logo ? (
+              <Image
+                src={match.zpls.away_logo}
+                alt={match.awayTeam}
+                width={80}
+                height={80}
+                className="h-16 w-16 rounded-full object-contain sm:h-20 sm:w-20"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/10 text-lg font-bold text-accent sm:h-20 sm:w-20 sm:text-xl">
+                {getInitials(match.awayTeam)}
+              </div>
+            )}
             <p className="max-w-[120px] text-center text-sm font-semibold sm:text-base">
               {match.awayTeam}
             </p>

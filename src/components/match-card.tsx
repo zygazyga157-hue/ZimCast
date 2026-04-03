@@ -2,10 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Radio, Timer, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { MatchPhase } from "@/lib/match-window";
+
+interface ZplsScore {
+  score: string;
+  ht_score: string;
+  ft_score: string;
+  status: string;
+  time: string;
+  home_logo: string;
+  away_logo: string;
+}
 
 interface Match {
   id: string;
@@ -15,6 +26,7 @@ interface Match {
   price: string;
   isLive: boolean;
   phase?: MatchPhase;
+  zpls?: ZplsScore | null;
 }
 
 interface MatchCardProps {
@@ -86,24 +98,53 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
           <div className="flex items-center gap-4">
             {/* Home */}
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-xs font-bold text-primary">
-                {getInitials(match.homeTeam)}
-              </div>
+              {match.zpls?.home_logo ? (
+                <Image
+                  src={match.zpls.home_logo}
+                  alt={match.homeTeam}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 shrink-0 rounded-full object-contain"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-xs font-bold text-primary">
+                  {getInitials(match.homeTeam)}
+                </div>
+              )}
               <p className="truncate text-sm font-semibold transition-colors group-hover:text-primary">
                 {match.homeTeam}
               </p>
             </div>
 
-            {/* VS */}
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
-              VS
-            </div>
+            {/* VS / Score */}
+            {match.zpls?.score ? (
+              <div className="flex shrink-0 flex-col items-center">
+                <span className="text-base font-bold tabular-nums">{match.zpls.score}</span>
+                {(match.zpls.status === "IN PLAY" || match.zpls.status === "HALF TIME BREAK" || match.zpls.status === "ADDED TIME") && (
+                  <span className="text-[9px] font-medium text-red-400">{match.zpls.time}&apos;</span>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                VS
+              </div>
+            )}
 
             {/* Away */}
             <div className="flex flex-1 items-center gap-3 min-w-0 flex-row-reverse">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/5 text-xs font-bold text-accent">
-                {getInitials(match.awayTeam)}
-              </div>
+              {match.zpls?.away_logo ? (
+                <Image
+                  src={match.zpls.away_logo}
+                  alt={match.awayTeam}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 shrink-0 rounded-full object-contain"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/5 text-xs font-bold text-accent">
+                  {getInitials(match.awayTeam)}
+                </div>
+              )}
               <p className="truncate text-right text-sm font-semibold transition-colors group-hover:text-primary">
                 {match.awayTeam}
               </p>

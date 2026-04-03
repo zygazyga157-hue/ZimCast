@@ -72,15 +72,16 @@ model User {
 }
 
 model Match {
-  id        String   @id @default(cuid())
-  homeTeam  String
-  awayTeam  String
-  kickoff   DateTime
-  price     Decimal  @db.Decimal(10, 2)
-  streamKey String   @unique
-  isLive    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  homeTeam       String
+  awayTeam       String
+  kickoff        DateTime
+  price          Decimal  @db.Decimal(10, 2)
+  streamKey      String   @unique
+  isLive         Boolean  @default(false)
+  zplsFixtureId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   passes             MatchPass[]
   payments           Payment[]
