@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Radio, Loader2, Tv, Trophy, Calendar as CalendarIcon } from "lucide-react";
 import { PageTransition } from "@/components/page-transition";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { SportsHero } from "@/components/sports-hero";
+import { TeamLogo } from "@/components/team-logo";
 import { MatchCard } from "@/components/match-card";
 import { MatchFilters, type MatchFilter } from "@/components/match-filters";
 import { EmptyMatches } from "@/components/empty-matches";
@@ -272,24 +272,12 @@ export default function SportsPage() {
                       {zplsFixtures.slice(0, 10).map((f) => (
                         <div key={f.id} className="flex items-center gap-3 px-4 py-3 text-sm">
                           <div className="flex flex-1 items-center gap-2 min-w-0">
-                            {f.home_logo ? (
-                              <Image src={f.home_logo} alt={f.home_name} width={24} height={24} className="h-6 w-6 rounded-full object-contain shrink-0" />
-                            ) : (
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
-                                {f.home_name.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
+                            <TeamLogo src={f.home_logo} name={f.home_name} size={24} />
                             <span className="truncate font-medium">{f.home_name}</span>
                           </div>
                           <span className="text-xs font-medium text-muted-foreground shrink-0">vs</span>
                           <div className="flex flex-1 items-center gap-2 min-w-0 flex-row-reverse">
-                            {f.away_logo ? (
-                              <Image src={f.away_logo} alt={f.away_name} width={24} height={24} className="h-6 w-6 rounded-full object-contain shrink-0" />
-                            ) : (
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[8px] font-bold text-accent">
-                                {f.away_name.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
+                            <TeamLogo src={f.away_logo} name={f.away_name} size={24} />
                             <span className="truncate text-right font-medium">{f.away_name}</span>
                           </div>
                           <div className="shrink-0 text-right text-xs text-muted-foreground w-20">
@@ -332,13 +320,7 @@ export default function SportsPage() {
                             <td className="px-4 py-2.5 font-medium text-muted-foreground">{team.rank}</td>
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
-                                {team.logo ? (
-                                  <Image src={team.logo} alt={team.name} width={20} height={20} className="h-5 w-5 rounded-full object-contain" />
-                                ) : (
-                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[7px] font-bold text-primary">
-                                    {(team.short_code || team.name.slice(0, 2)).toUpperCase()}
-                                  </div>
-                                )}
+                                <TeamLogo src={team.logo} name={team.name} size={20} />
                                 <span className="font-medium truncate max-w-[140px]">{team.name}</span>
                               </div>
                             </td>

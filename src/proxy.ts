@@ -11,6 +11,7 @@ export default auth((req) => {
     "/api/matches",
     "/api/payments/webhook",
     "/api/streams/ztv/token",
+    "/api/zpls",
     "/login",
     "/register",
     "/sports",

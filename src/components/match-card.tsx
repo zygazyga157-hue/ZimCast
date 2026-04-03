@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Radio, Timer, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TeamLogo } from "@/components/team-logo";
 import type { MatchPhase } from "@/lib/match-window";
 
 interface ZplsScore {
@@ -32,12 +32,6 @@ interface Match {
 interface MatchCardProps {
   match: Match;
   index?: number;
-}
-
-function getInitials(team: string): string {
-  const words = team.trim().split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  return words.map((w) => w[0]).join("").slice(0, 3).toUpperCase();
 }
 
 export function MatchCard({ match, index = 0 }: MatchCardProps) {
@@ -98,19 +92,7 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
           <div className="flex items-center gap-4">
             {/* Home */}
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              {match.zpls?.home_logo ? (
-                <Image
-                  src={match.zpls.home_logo}
-                  alt={match.homeTeam}
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 shrink-0 rounded-full object-contain"
-                />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-xs font-bold text-primary">
-                  {getInitials(match.homeTeam)}
-                </div>
-              )}
+              <TeamLogo src={match.zpls?.home_logo} name={match.homeTeam} size={40} />
               <p className="truncate text-sm font-semibold transition-colors group-hover:text-primary">
                 {match.homeTeam}
               </p>
@@ -132,19 +114,7 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
 
             {/* Away */}
             <div className="flex flex-1 items-center gap-3 min-w-0 flex-row-reverse">
-              {match.zpls?.away_logo ? (
-                <Image
-                  src={match.zpls.away_logo}
-                  alt={match.awayTeam}
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 shrink-0 rounded-full object-contain"
-                />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent/5 text-xs font-bold text-accent">
-                  {getInitials(match.awayTeam)}
-                </div>
-              )}
+              <TeamLogo src={match.zpls?.away_logo} name={match.awayTeam} size={40} />
               <p className="truncate text-right text-sm font-semibold transition-colors group-hover:text-primary">
                 {match.awayTeam}
               </p>

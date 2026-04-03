@@ -149,40 +149,132 @@ async function zpls<T>(
   return data;
 }
 
+// ── Normalisers (raw API → our flat interfaces) ─────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeFixture(r: any): ZplsFixture {
+  return {
+    id: String(r.id),
+    home_id: String(r.home?.id ?? ""),
+    home_name: r.home?.name ?? "",
+    home_logo: r.home?.logo ?? "",
+    away_id: String(r.away?.id ?? ""),
+    away_name: r.away?.name ?? "",
+    away_logo: r.away?.logo ?? "",
+    location: r.location ?? "",
+    date: r.date ?? "",
+    time: r.time ?? "",
+    round: String(r.round ?? ""),
+    competition_id: String(r.competition?.id ?? r.competition_id ?? ""),
+    competition_name: r.competition?.name ?? r.competition_name ?? "",
+  };
+}
+
+/** Derive a 3-letter short code from a team name */
+function deriveShortCode(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  // Multi-word: take first letter of each word (up to 3)
+  return words
+    .slice(0, 3)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeStanding(r: any): ZplsStanding {
+  return {
+    team_id: String(r.team_id ?? ""),
+    name: r.name ?? "",
+    short_code: r.short_code ?? "",
+    logo: r.logo ?? "",
+    rank: parseInt(r.rank, 10) || 0,
+    matches: parseInt(r.matches, 10) || 0,
+    won: parseInt(r.won, 10) || 0,
+    draw: parseInt(r.drawn ?? r.draw, 10) || 0,
+    lost: parseInt(r.lost, 10) || 0,
+    goals_scored: parseInt(r.goals_scored, 10) || 0,
+    goals_conceded: parseInt(r.goals_conceded, 10) || 0,
+    goal_diff: parseInt(r.goal_diff, 10) || 0,
+    points: parseInt(r.points, 10) || 0,
+  };
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /** Upcoming fixtures — cached 5 min */
 export async function getFixtures(
   page = 1,
 ): Promise<{ fixtures: ZplsFixture[]; next_page?: number; total?: number }> {
-  return zpls(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = await zpls<any>(
     "fixtures/list.json",
     { page: String(page) },
     `zpls:fixtures:${page}`,
     300,
   );
+  return {
+    fixtures: (raw.fixtures ?? []).map(normalizeFixture),
+    total: raw.total,
+  };
 }
 
 /** Live matches — cached 30s */
 export async function getLiveMatches(): Promise<{ match: ZplsLiveMatch[] }> {
-  return zpls("matches/live.json", {}, "zpls:live", 30);
+  return zpls("scores/live.json", {}, "zpls:live", 30);
 }
 
 /** Past results — cached 5 min */
 export async function getHistory(
   page = 1,
 ): Promise<{ match: ZplsHistoryMatch[]; next_page?: number; total?: number }> {
-  return zpls(
-    "matches/history.json",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = await zpls<any>(
+    "scores/history.json",
     { page: String(page) },
     `zpls:history:${page}`,
     300,
   );
+  const match: ZplsHistoryMatch[] = (raw.match ?? []).map((m: ZplsHistoryMatch) => ({
+    ...m,
+    id: String(m.id),
+    fixture_id: String(m.fixture_id),
+    home_id: String(m.home_id),
+    away_id: String(m.away_id),
+    competition_id: String(m.competition_id),
+    home_logo: m.home_logo ?? "",
+    away_logo: m.away_logo ?? "",
+    round: String(m.round ?? ""),
+  }));
+  return { match, total: raw.total_pages };
 }
 
-/** League standings — cached 15 min */
+/** League standings — cached 15 min, enriched with logos from fixtures */
 export async function getStandings(): Promise<{ table: ZplsStanding[] }> {
-  return zpls("competitions/standings.json", {}, "zpls:standings", 900);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [raw, fixtureData] = await Promise.all([
+    zpls<any>("leagues/table.json", {}, "zpls:standings", 900),
+    getFixtures(1).catch(() => ({ fixtures: [] })),
+  ]);
+
+  // Build teamId → logo map from fixtures (covers all teams seen in round 1)
+  const teamLogoMap = new Map<string, string>();
+  for (const f of fixtureData.fixtures) {
+    if (f.home_id && f.home_logo) teamLogoMap.set(f.home_id, f.home_logo);
+    if (f.away_id && f.away_logo) teamLogoMap.set(f.away_id, f.away_logo);
+  }
+
+  const table = (raw.table ?? []).map((r: any) => {
+    const standing = normalizeStanding(r);
+    return {
+      ...standing,
+      logo: teamLogoMap.get(standing.team_id) ?? "",
+      short_code: deriveShortCode(standing.name),
+    };
+  });
+
+  return { table };
 }
 
 /**
@@ -202,16 +294,16 @@ export async function getFixtureScore(fixtureId: string): Promise<{
   // Check live matches first
   try {
     const live = await getLiveMatches();
-    const match = live.match?.find((m) => m.fixture_id === fixtureId);
+    const match = live.match?.find((m) => String(m.fixture_id) === String(fixtureId));
     if (match) {
       return {
-        score: match.scores.score,
-        ht_score: match.scores.ht_score,
-        ft_score: match.scores.ft_score,
+        score: match.scores?.score ?? "",
+        ht_score: match.scores?.ht_score ?? "",
+        ft_score: match.scores?.ft_score ?? "",
         status: match.status,
         time: match.time,
-        home_logo: match.home_logo,
-        away_logo: match.away_logo,
+        home_logo: match.home_logo ?? "",
+        away_logo: match.away_logo ?? "",
       };
     }
   } catch {
@@ -221,7 +313,7 @@ export async function getFixtureScore(fixtureId: string): Promise<{
   // Check history
   try {
     const history = await getHistory();
-    const match = history.match?.find((m) => m.fixture_id === fixtureId);
+    const match = history.match?.find((m) => String(m.fixture_id) === String(fixtureId));
     if (match) {
       return {
         score: match.score,

@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Trophy, Radio, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TeamLogo } from "@/components/team-logo";
 import type { MatchPhase } from "@/lib/match-window";
 
 interface ZplsScore {
@@ -32,12 +32,6 @@ interface Match {
 
 interface SportsHeroProps {
   match: Match;
-}
-
-function getInitials(team: string): string {
-  const words = team.trim().split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  return words.map((w) => w[0]).join("").slice(0, 3).toUpperCase();
 }
 
 export function SportsHero({ match }: SportsHeroProps) {
@@ -100,17 +94,10 @@ export function SportsHero({ match }: SportsHeroProps) {
             className="flex flex-col items-center gap-3"
           >
             {match.zpls?.home_logo ? (
-              <Image
-                src={match.zpls.home_logo}
-                alt={match.homeTeam}
-                width={80}
-                height={80}
-                className="h-16 w-16 rounded-full object-contain sm:h-20 sm:w-20"
-              />
+              <TeamLogo src={match.zpls.home_logo} name={match.homeTeam} size={80} />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-lg font-bold text-primary sm:h-20 sm:w-20 sm:text-xl">
-                {getInitials(match.homeTeam)}
-              </div>
+              <TeamLogo src={null} name={match.homeTeam} size={80}
+                fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-lg font-bold text-primary sm:h-20 sm:w-20 sm:text-xl" />
             )}
             <p className="max-w-[120px] text-center text-sm font-semibold sm:text-base">
               {match.homeTeam}
@@ -149,17 +136,10 @@ export function SportsHero({ match }: SportsHeroProps) {
             className="flex flex-col items-center gap-3"
           >
             {match.zpls?.away_logo ? (
-              <Image
-                src={match.zpls.away_logo}
-                alt={match.awayTeam}
-                width={80}
-                height={80}
-                className="h-16 w-16 rounded-full object-contain sm:h-20 sm:w-20"
-              />
+              <TeamLogo src={match.zpls.away_logo} name={match.awayTeam} size={80} />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/10 text-lg font-bold text-accent sm:h-20 sm:w-20 sm:text-xl">
-                {getInitials(match.awayTeam)}
-              </div>
+              <TeamLogo src={null} name={match.awayTeam} size={80}
+                fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/10 text-lg font-bold text-accent sm:h-20 sm:w-20 sm:text-xl" />
             )}
             <p className="max-w-[120px] text-center text-sm font-semibold sm:text-base">
               {match.awayTeam}

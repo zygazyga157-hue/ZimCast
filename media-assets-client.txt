@@ -1,0 +1,265 @@
+ZIMCAST — MEDIA ASSETS REQUEST (Client-Friendly)
+Date: 2026-04-03
+
+Overview
+---------
+ZimCast currently ships with ZERO real image assets. The app uses:
+- A CSS-styled “Z” placeholder for the logo
+- Lucide icons (SVG) for UI icons
+- CSS gradients for backgrounds
+
+To complete the product branding and polish, we need you to provide the media assets listed below.
+
+Brand theme (reference)
+-----------------------
+- Primary: #FF416C
+- Accent:  #FF4B2B
+- Background: #0B0B0B (dark theme)
+
+IMPORTANT: File names matter
+----------------------------
+Please deliver the files EXACTLY with the names/paths shown (so the app can load them without extra work).
+If you can, send a single ZIP whose folder structure matches the “public/” paths below.
+
+IMPORTANT: Official logos only
+------------------------------
+For EcoCash, Paynow, and ZBC/ZTV logos: use official brand assets only (no unofficial redraws).
+
+
+HIGH PRIORITY (Needed for launch polish)
+========================================
+
+1) ZimCast Logo (replaces the current “Z” placeholder)
+------------------------------------------------------
+Where it appears (components/areas):
+- Top navbar (header) — small icon + “ZimCast” text
+- Footer — small icon + “ZimCast” text
+- Login/Register layout — larger icon + “ZimCast” text
+
+Deliverables:
+- public/logo.svg                (ZimCast full wordmark: icon + “ZimCast”)
+- public/logo-icon.svg           (icon-only)
+
+Preferred format:
+- SVG (best for crisp scaling)
+
+PNG fallbacks (optional but helpful):
+- Wordmark: 256x64 PNG
+- Icon:     64x64 PNG
+
+Variants needed:
+- Dark UI variant (light/white logo for dark backgrounds)
+- Light UI variant (dark logo for social share and future light-mode)
+
+
+2) Favicon + PWA Install Icons (browser tab + “Add to Home Screen”)
+-------------------------------------------------------------------
+Where it appears (components/areas):
+- Browser tab icon
+- Mobile home screen icon
+- PWA install prompt icons
+
+Deliverables:
+- public/favicon.ico                      (multi-size: 16, 32, 48)
+- public/favicon-16x16.png                (16x16)
+- public/favicon-32x32.png                (32x32)
+- public/apple-touch-icon.png             (180x180)
+- public/icons/icon-192.png               (192x192)
+- public/icons/icon-512.png               (512x512)
+- public/icons/maskable-icon-512.png      (512x512; safe zone inner 409x409)
+
+Notes:
+- PNGs should have transparent background where possible (except where brand requires solid fill).
+- Maskable icon must keep key shapes inside the safe zone (Android).
+
+
+3) Social Share / Open Graph Image (WhatsApp/Facebook/Twitter preview)
+----------------------------------------------------------------------
+Where it appears (components/areas):
+- Link preview when someone shares any ZimCast URL
+
+Deliverable:
+- public/og-image.png                     (1200x630)
+
+Content guidance:
+- ZimCast logo
+- Tagline: “Stream Live from Zimbabwe”
+- Dark brand gradient background (fits the app look)
+
+Format:
+- PNG preferred (JPG acceptable)
+
+
+4) Home Page Hero Background (main landing page header image)
+-------------------------------------------------------------
+Where it appears (components/areas):
+- Home page hero section (large banner background behind text)
+
+Deliverables:
+- public/hero-bg.webp                     (minimum 1920x1080; ideal 2400x1350 for high-DPI)
+- Optional fallback: public/hero-bg.jpg
+
+Content guidance:
+- Stadium / crowd / match atmosphere
+- Dark, moody tone (must blend with #0B0B0B)
+- Image must work with text on top (we will apply a dark overlay to ensure readability)
+
+
+MEDIUM PRIORITY (Strong UX/branding improvements)
+=================================================
+
+5) Login/Register Illustration (branding panel artwork)
+-------------------------------------------------------
+Where it appears (components/areas):
+- Desktop login/register left-side branding panel over the brand gradient
+
+Deliverables (choose one):
+- public/auth-illustration.svg
+OR
+- public/auth-illustration.png             (~480x600 content area)
+
+Content options (choose one style):
+- A) Phone mockup/screenshot style (app on a phone)
+- B) Stadium/crowd photo (dark-toned)
+- C) Illustrated sports/streaming scene
+- D) No illustration (we can keep gradient-only if you prefer)
+
+
+6) ZTV / ZBC Channel Logos (official)
+-------------------------------------
+Where it appears (components/areas):
+- Live TV “Channel Info” card (small square logo)
+- Off-air screen branding (horizontal logo/wordmark)
+
+Deliverables:
+- public/ztv-logo.svg                      (~120x120)
+- public/zbc-logo.svg                      (~200x60)
+
+If official assets cannot be provided:
+- Do NOT substitute unofficial logos; we will keep the current icon fallback.
+
+
+7) Payment Provider Logos (official)
+------------------------------------
+Where it appears (components/areas):
+- Match pass purchase screen (payment method selector)
+- Payment success screen (confirmation UI)
+
+Deliverables:
+- public/ecocash-logo.png                  (120x40, transparent background)
+- public/paynow-logo.png                   (120x40, transparent background)
+
+Style guidance:
+- White/light versions preferred (the UI is dark)
+- Ensure the logo is readable at small sizes
+
+
+8) Testimonial Avatars (Home page “reviews”)
+--------------------------------------------
+Where it appears (components/areas):
+- Home page testimonials section (small circular avatar)
+
+Deliverables:
+- public/avatars/tatenda.jpg               (80x80)  “Tatenda M., Harare”
+- public/avatars/rudo.jpg                  (80x80)  “Rudo K., Bulawayo”
+- public/avatars/tinotenda.jpg             (80x80)  “Tinotenda C., Mutare”
+
+Option:
+- Real photos OR illustrated/abstract avatars (preferred if privacy concerns)
+
+
+9) Empty State Illustrations (when there’s no data)
+---------------------------------------------------
+Where it appears (components/areas):
+- Sports filters with no matches
+- Profile “Match Passes” tab when no passes
+- Analytics pages when there’s no watch history
+
+Deliverables (SVG preferred):
+- public/illustrations/no-matches.svg      (~200x160)
+- public/illustrations/no-passes.svg       (~200x160)
+- public/illustrations/no-analytics.svg    (~200x160)
+
+Style guidance:
+- Minimal line-art or flat illustration
+- Transparent background
+- White/light strokes for dark theme compatibility
+- Use #FF416C / #FF4B2B as accent highlights (not full fills)
+
+
+LOW PRIORITY (Nice-to-have enhancements)
+========================================
+
+10) Payment Success Animation / Graphic
+---------------------------------------
+Where it appears (components/areas):
+- Payment success screen (replaces a static check icon)
+
+Deliverables (choose one):
+- public/success-animation.json            (Lottie)
+OR
+- public/success-graphic.svg               (static/animated SVG)
+
+Size guidance:
+- Designed to display at ~160x160
+
+
+11) Default User Avatar Placeholder
+-----------------------------------
+Where it appears (components/areas):
+- User avatar fallback (when a user has no profile photo)
+
+Deliverable:
+- public/avatar-default.png                (128x128, PNG or WebP)
+
+Style guidance:
+- Generic silhouette or abstract avatar
+- Must read well on dark background
+
+
+12) Video Player Poster Images (per match)
+------------------------------------------
+Where it appears (components/areas):
+- Match watch page video player (poster image before playback)
+
+Deliverable options:
+- Static posters stored in: public/posters/[matchId].jpg  (1280x720, 16:9)
+OR
+- Provide poster URLs via CDN (requires config)
+
+Content guidance:
+- Could be a composite of the two teams, match title, and date
+- Or a simple branded poster template per match
+
+
+Optional: Public folder cleanup (after real assets exist)
+--------------------------------------------------------
+These are Next.js boilerplate icons and can be deleted later:
+- public/file.svg
+- public/globe.svg
+- public/next.svg
+- public/vercel.svg
+- public/window.svg
+
+
+Delivery checklist (quick)
+--------------------------
+HIGH:
+[ ] ZimCast logo (SVG wordmark + icon-only, light/dark variants)
+[ ] Favicon + PWA icon set
+[ ] og-image (1200x630)
+[ ] hero background (WebP)
+
+MEDIUM:
+[ ] auth illustration
+[ ] ZTV & ZBC official logos
+[ ] EcoCash & Paynow official logos
+[ ] testimonial avatars (or illustrated replacements)
+[ ] empty state illustrations
+
+LOW:
+[ ] success animation/graphic
+[ ] default avatar
+[ ] match posters (optional)
+
+End.
