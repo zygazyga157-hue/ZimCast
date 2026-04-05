@@ -201,9 +201,123 @@ function normalizeStanding(r: any): ZplsStanding {
   };
 }
 
+// ── Logo validation & cache ─────────────────────────────────────────────────
+
+const LOGO_CACHE_KEY = "zpls:team-logos";
+const LOGO_TTL = 86400; // 24 hours — logos rarely change
+
+/**
+ * Validate team logo URLs server-side and cache results in Redis.
+ * Invalid logos (404, SVG placeholder on a .png URL) are cached as ""
+ * so they won't be re-probed on every request.
+ */
+async function resolveTeamLogos(
+  teams: Array<{ id: string; logo: string }>,
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  if (teams.length === 0) return result;
+
+  // De-dup by team id
+  const unique = new Map<string, string>();
+  for (const t of teams) unique.set(t.id, t.logo);
+
+  const ids = [...unique.keys()];
+  const toValidate: Array<{ id: string; logo: string }> = [];
+
+  // Check Redis hash for already-validated logos
+  try {
+    const cached = await redis.hmget(LOGO_CACHE_KEY, ...ids);
+    for (let i = 0; i < ids.length; i++) {
+      if (cached[i] !== null) {
+        result.set(ids[i], cached[i]!);
+      } else {
+        const logo = unique.get(ids[i]) ?? "";
+        if (logo) {
+          toValidate.push({ id: ids[i], logo });
+        } else {
+          result.set(ids[i], "");
+        }
+      }
+    }
+  } catch {
+    // Redis unavailable — validate everything
+    for (const [id, logo] of unique) {
+      if (logo) toValidate.push({ id, logo });
+      else result.set(id, "");
+    }
+  }
+
+  if (toValidate.length === 0) return result;
+
+  // HEAD-request each uncached logo URL in parallel
+  const validations = await Promise.allSettled(
+    toValidate.map(async (t) => {
+      try {
+        const res = await fetch(t.logo, { method: "HEAD" });
+        const ct = res.headers.get("content-type") ?? "";
+        // A .png URL that returns SVG is the CDN's 404 placeholder
+        const isPng = t.logo.endsWith(".png");
+        const isValid =
+          res.ok && ct.startsWith("image/") && !(isPng && ct.includes("svg"));
+        return { id: t.id, url: isValid ? t.logo : "" };
+      } catch {
+        return { id: t.id, url: "" };
+      }
+    }),
+  );
+
+  const toCache: Record<string, string> = {};
+  for (const v of validations) {
+    if (v.status === "fulfilled") {
+      result.set(v.value.id, v.value.url);
+      toCache[v.value.id] = v.value.url;
+    }
+  }
+
+  // Persist to Redis
+  try {
+    if (Object.keys(toCache).length > 0) {
+      await redis.hmset(LOGO_CACHE_KEY, toCache);
+      await redis.expire(LOGO_CACHE_KEY, LOGO_TTL);
+    }
+  } catch {
+    // Cache write failed — non-critical
+  }
+
+  return result;
+}
+
+/**
+ * Collect teams from a list of fixtures for logo validation.
+ */
+function collectTeamsFromFixtures(
+  fixtures: ZplsFixture[],
+): Array<{ id: string; logo: string }> {
+  const teams = new Map<string, string>();
+  for (const f of fixtures) {
+    if (f.home_id) teams.set(f.home_id, f.home_logo);
+    if (f.away_id) teams.set(f.away_id, f.away_logo);
+  }
+  return [...teams.entries()].map(([id, logo]) => ({ id, logo }));
+}
+
+/**
+ * Replace fixture logos with validated URLs from cache.
+ */
+function applyValidatedLogos(
+  fixtures: ZplsFixture[],
+  logoMap: Map<string, string>,
+): ZplsFixture[] {
+  return fixtures.map((f) => ({
+    ...f,
+    home_logo: logoMap.get(f.home_id) ?? "",
+    away_logo: logoMap.get(f.away_id) ?? "",
+  }));
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
-/** Upcoming fixtures — cached 5 min */
+/** Upcoming fixtures — cached 5 min, logos validated server-side */
 export async function getFixtures(
   page = 1,
 ): Promise<{ fixtures: ZplsFixture[]; next_page?: number; total?: number }> {
@@ -214,8 +328,10 @@ export async function getFixtures(
     `zpls:fixtures:${page}`,
     300,
   );
+  const fixtures = (raw.fixtures ?? []).map(normalizeFixture);
+  const logoMap = await resolveTeamLogos(collectTeamsFromFixtures(fixtures));
   return {
-    fixtures: (raw.fixtures ?? []).map(normalizeFixture),
+    fixtures: applyValidatedLogos(fixtures, logoMap),
     total: raw.total,
   };
 }
@@ -225,7 +341,7 @@ export async function getLiveMatches(): Promise<{ match: ZplsLiveMatch[] }> {
   return zpls("scores/live.json", {}, "zpls:live", 30);
 }
 
-/** Past results — cached 5 min */
+/** Past results — cached 5 min, logos validated server-side */
 export async function getHistory(
   page = 1,
 ): Promise<{ match: ZplsHistoryMatch[]; next_page?: number; total?: number }> {
@@ -236,7 +352,7 @@ export async function getHistory(
     `zpls:history:${page}`,
     300,
   );
-  const match: ZplsHistoryMatch[] = (raw.match ?? []).map((m: ZplsHistoryMatch) => ({
+  const matches: ZplsHistoryMatch[] = (raw.match ?? []).map((m: ZplsHistoryMatch) => ({
     ...m,
     id: String(m.id),
     fixture_id: String(m.fixture_id),
@@ -247,10 +363,26 @@ export async function getHistory(
     away_logo: m.away_logo ?? "",
     round: String(m.round ?? ""),
   }));
-  return { match, total: raw.total_pages };
+
+  // Validate logos via shared cache
+  const teams = new Map<string, string>();
+  for (const m of matches) {
+    if (m.home_id) teams.set(m.home_id, m.home_logo);
+    if (m.away_id) teams.set(m.away_id, m.away_logo);
+  }
+  const logoMap = await resolveTeamLogos(
+    [...teams.entries()].map(([id, logo]) => ({ id, logo })),
+  );
+  const validatedMatches = matches.map((m) => ({
+    ...m,
+    home_logo: logoMap.get(m.home_id) ?? "",
+    away_logo: logoMap.get(m.away_id) ?? "",
+  }));
+
+  return { match: validatedMatches, total: raw.total_pages };
 }
 
-/** League standings — cached 15 min, enriched with logos from fixtures */
+/** League standings — cached 15 min, logos validated via shared cache */
 export async function getStandings(): Promise<{ table: ZplsStanding[] }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [raw, fixtureData] = await Promise.all([
@@ -258,13 +390,14 @@ export async function getStandings(): Promise<{ table: ZplsStanding[] }> {
     getFixtures(1).catch(() => ({ fixtures: [] })),
   ]);
 
-  // Build teamId → logo map from fixtures (covers all teams seen in round 1)
+  // Fixtures already have validated logos — reuse them for standings
   const teamLogoMap = new Map<string, string>();
   for (const f of fixtureData.fixtures) {
     if (f.home_id && f.home_logo) teamLogoMap.set(f.home_id, f.home_logo);
     if (f.away_id && f.away_logo) teamLogoMap.set(f.away_id, f.away_logo);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const table = (raw.table ?? []).map((r: any) => {
     const standing = normalizeStanding(r);
     return {
