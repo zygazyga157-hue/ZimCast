@@ -24,7 +24,7 @@ export async function GET() {
     });
 
     // Filter out noise: only WATCH actions with meaningful duration
-    const meaningful = activities.filter((a) => a.watchDuration >= 5);
+    const meaningful = activities.filter((a) => a.watchDuration >= 1);
 
     // Total watch time (seconds)
     const totalWatchTime = meaningful.reduce((sum, a) => sum + a.watchDuration, 0);

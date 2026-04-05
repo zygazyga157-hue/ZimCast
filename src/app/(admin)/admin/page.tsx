@@ -95,7 +95,7 @@ export default function AdminOverviewPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="rounded-xl border border-border bg-card p-5"
+            className="rounded-2xl border border-border bg-card p-5"
           >
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
@@ -110,7 +110,7 @@ export default function AdminOverviewPage() {
 
       {/* Pending Payments Alert */}
       {stats.pendingPayments > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-5 py-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 px-5 py-3">
           <Clock className="h-4 w-4 text-yellow-400" />
           <p className="text-sm">
             <span className="font-semibold text-yellow-400">
@@ -123,7 +123,7 @@ export default function AdminOverviewPage() {
       )}
 
       {/* Recent Payments */}
-      <div className="rounded-xl border border-border bg-card">
+      <div className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-5 py-3">
           <h2 className="text-sm font-semibold">Recent Payments</h2>
         </div>

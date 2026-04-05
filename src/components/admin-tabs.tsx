@@ -8,6 +8,7 @@ import {
   Trophy,
   Tv,
   Users,
+  BarChart3,
   CreditCard,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ const tabs = [
   { href: "/admin/matches", label: "Matches", icon: Trophy },
   { href: "/admin/programs", label: "Programs", icon: Tv },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
 ];
 
