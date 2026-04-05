@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Clock, Radio, Trophy, Newspaper, Music, Film, Tv } from "lucide-react";
+import { Clock, Radio, Trophy, Newspaper, Music, Film, Tv, Gamepad2, Plane, UtensilsCrossed, Cpu, Shirt, Dumbbell, Palette } from "lucide-react";
 
 interface Program {
   id: string;
@@ -46,7 +46,30 @@ export function EpgStrip({ programs, currentProgramId }: EpgStripProps) {
     ENTERTAINMENT: Film,
     MUSIC: Music,
     DOCUMENTARY: Tv,
+    GAMING: Gamepad2,
+    TRAVEL: Plane,
+    FOOD: UtensilsCrossed,
+    TECH: Cpu,
+    FASHION: Shirt,
+    FITNESS: Dumbbell,
+    ART: Palette,
     OTHER: Tv,
+  };
+
+  const categoryBadgeColors: Record<string, string> = {
+    SPORTS: "bg-orange-500/15 text-orange-400",
+    NEWS: "bg-blue-500/15 text-blue-400",
+    ENTERTAINMENT: "bg-pink-500/15 text-pink-400",
+    MUSIC: "bg-green-500/15 text-green-400",
+    DOCUMENTARY: "bg-purple-500/15 text-purple-400",
+    GAMING: "bg-indigo-500/15 text-indigo-400",
+    TRAVEL: "bg-teal-500/15 text-teal-400",
+    FOOD: "bg-amber-500/15 text-amber-400",
+    TECH: "bg-slate-500/15 text-slate-400",
+    FASHION: "bg-fuchsia-500/15 text-fuchsia-400",
+    FITNESS: "bg-lime-500/15 text-lime-400",
+    ART: "bg-rose-500/15 text-rose-400",
+    OTHER: "bg-muted text-muted-foreground",
   };
 
   return (
@@ -76,7 +99,7 @@ export function EpgStrip({ programs, currentProgramId }: EpgStripProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.3 }}
-              className={`flex-none rounded-lg border p-3 transition-colors ${
+              className={`flex-none rounded-xl border p-3 transition-colors ${
                 isCurrent
                   ? "border-primary/50 bg-primary/10 shadow-lg shadow-primary/5"
                   : isPast
@@ -92,17 +115,7 @@ export function EpgStrip({ programs, currentProgramId }: EpgStripProps) {
                     NOW
                   </span>
                 )}
-                <span className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                  program.category === "SPORTS"
-                    ? "bg-orange-500/15 text-orange-400"
-                    : program.category === "NEWS"
-                      ? "bg-blue-500/15 text-blue-400"
-                      : program.category === "ENTERTAINMENT"
-                        ? "bg-pink-500/15 text-pink-400"
-                        : program.category === "MUSIC"
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-muted text-muted-foreground"
-                }`}>
+                <span className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${categoryBadgeColors[program.category] ?? categoryBadgeColors.OTHER}`}>
                   <CatIcon className="h-2.5 w-2.5" />
                   {program.category}
                 </span>

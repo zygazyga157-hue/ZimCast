@@ -12,6 +12,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   ENTERTAINMENT: "from-pink-500 to-rose-500",
   MUSIC: "from-green-500 to-emerald-500",
   DOCUMENTARY: "from-violet-500 to-purple-500",
+  GAMING: "from-indigo-500 to-blue-500",
+  TRAVEL: "from-teal-500 to-cyan-500",
+  FOOD: "from-amber-500 to-yellow-500",
+  TECH: "from-slate-400 to-blue-400",
+  FASHION: "from-fuchsia-500 to-pink-500",
+  FITNESS: "from-lime-500 to-green-500",
+  ART: "from-rose-500 to-violet-500",
   OTHER: "from-gray-500 to-zinc-500",
 };
 

@@ -19,12 +19,12 @@ const filters: { key: MatchFilter; label: string }[] = [
 
 export function MatchFilters({ active, onChange, counts }: MatchFiltersProps) {
   return (
-    <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
+    <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
       {filters.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
-          className={`relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`relative rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             active === key
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -33,7 +33,7 @@ export function MatchFilters({ active, onChange, counts }: MatchFiltersProps) {
           {active === key && (
             <motion.div
               layoutId="match-filter-bg"
-              className="absolute inset-0 rounded-md gradient-accent opacity-15"
+              className="absolute inset-0 rounded-lg gradient-accent opacity-15"
               transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
             />
           )}

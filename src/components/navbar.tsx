@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileAvatar } from "@/components/profile-avatar";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -196,13 +197,12 @@ export function Navbar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="gradient-accent text-xs font-bold text-white">
-                      {session.user.name?.[0]?.toUpperCase() ??
-                        session.user.email?.[0]?.toUpperCase() ??
-                        "U"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <ProfileAvatar
+                    avatarUrl={(session.user as { avatarUrl?: string | null }).avatarUrl}
+                    name={session.user.name}
+                    email={session.user.email}
+                    className="h-8 w-8"
+                  />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

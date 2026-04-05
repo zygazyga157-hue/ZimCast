@@ -60,7 +60,7 @@ export function OffAirScreen({ errorMessage, nextProgram, onRetry }: OffAirScree
   }, [onRetry]);
 
   return (
-    <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "16/9" }}>
+    <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: "16/9" }}>
       {/* Animated noise background */}
       <div className="off-air-bg absolute inset-0" />
 

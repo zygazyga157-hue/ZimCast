@@ -5,8 +5,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, Radio, Clock } from "lucide-react";
 import type Player from "video.js/dist/types/player";
+import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { EpgStrip } from "@/components/epg-strip";
@@ -127,6 +128,22 @@ export default function LiveTVPage() {
           {/* Channel Info Banner */}
           <ChannelInfo isLive={isLive} viewers={viewers} />
 
+          {/* Compact Info Bar */}
+          {(currentProgram || nextProgram) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {currentProgram && (
+                <Badge variant="outline" className="gap-1">
+                  <Radio className="h-3 w-3" /> {currentProgram.category}
+                </Badge>
+              )}
+              {nextProgram && (
+                <Badge variant="outline" className="gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" /> Next: {nextProgram.title}
+                </Badge>
+              )}
+            </div>
+          )}
+
           {/* Video / Off-Air / Blackout / Loading */}
           <AnimatePresence mode="wait">
             {sessionStatus === "loading" || loading ? (
@@ -135,7 +152,7 @@ export default function LiveTVPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-center rounded-xl bg-card"
+                className="flex items-center justify-center rounded-2xl bg-card"
                 style={{ aspectRatio: "16/9" }}
               >
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -147,7 +164,7 @@ export default function LiveTVPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.35 }}
-                className="flex items-center justify-center rounded-xl border border-border bg-card p-6 text-center"
+                className="flex items-center justify-center rounded-2xl border border-border bg-card p-6 text-center"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="mx-auto max-w-sm">
@@ -217,24 +234,28 @@ export default function LiveTVPage() {
             <StreamControls viewers={viewers} player={playerRef.current} />
           )}
 
-          {/* Now Playing + Up Next */}
-          {currentProgram && <NowPlaying program={currentProgram} />}
-          {nextProgram && <UpNext program={nextProgram} />}
-
-          {/* EPG Schedule Strip */}
-          {epgPrograms.length > 0 && (
-            <EpgStrip
-              programs={epgPrograms}
-              currentProgramId={status?.currentProgram?.id}
-            />
+          {/* Now on ZTV */}
+          {(currentProgram || nextProgram) && (
+            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Now on ZTV</h3>
+              {currentProgram && <NowPlaying program={currentProgram} />}
+              {nextProgram && <UpNext program={nextProgram} />}
+            </div>
           )}
 
-          {/* Full Day Schedule (expandable) */}
+          {/* EPG Schedule */}
           {epgPrograms.length > 0 && (
-            <EpgFullSchedule
-              programs={epgPrograms}
-              currentProgramId={status?.currentProgram?.id}
-            />
+            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Schedule</h3>
+              <EpgStrip
+                programs={epgPrograms}
+                currentProgramId={status?.currentProgram?.id}
+              />
+              <EpgFullSchedule
+                programs={epgPrograms}
+                currentProgramId={status?.currentProgram?.id}
+              />
+            </div>
           )}
 
           {/* Personalised Recommendations */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -12,26 +12,31 @@ import {
   Calendar,
   Save,
   CheckCircle2,
-  BarChart3,
   Mail,
   ShieldCheck,
   Check,
   Clock,
   Trophy,
-  Star,
-  Lightbulb,
   Activity,
+  MapPin,
+  Globe,
+  Languages,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PageTransition } from "@/components/page-transition";
-import { Heatmap } from "@/components/analytics/heatmap";
-import { StatsCard } from "@/components/analytics/stats-card";
-import { CategoryChart } from "@/components/analytics/category-chart";
 import { api, showApiError } from "@/lib/api";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { toast } from "sonner";
 
 const INTEREST_OPTIONS = [
@@ -40,17 +45,16 @@ const INTEREST_OPTIONS = [
   "Entertainment",
   "Music",
   "Documentary",
+  "Gaming",
+  "Travel",
+  "Food",
+  "Tech",
+  "Fashion",
+  "Fitness",
+  "Art",
 ] as const;
 
 const LANGUAGE_OPTIONS = ["English", "Shona", "Ndebele"] as const;
-
-const TABS = [
-  { id: "account", label: "Account", icon: User },
-  { id: "passes", label: "Passes", icon: Ticket },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
 
 interface Profile {
   id: string;
@@ -61,6 +65,7 @@ interface Profile {
   gender: string | null;
   city: string | null;
   country: string | null;
+  avatarUrl: string | null;
   emailVerified: boolean;
   interests: string[];
   language: string;
@@ -82,7 +87,7 @@ interface Pass {
   };
 }
 
-interface Analytics {
+interface AnalyticsData {
   totalWatchTime: number;
   favoriteCategory: string | null;
   topPrograms: { title: string; totalTime: number }[];
@@ -102,6 +107,13 @@ interface Analytics {
   totalMatches: number;
 }
 
+function formatWatchTime(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export default function ProfilePage() {
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
@@ -112,9 +124,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [resending, setResending] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>("account");
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Form fields
   const [name, setName] = useState("");
@@ -126,6 +136,22 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [language, setLanguage] = useState("English");
 
+  // Dirty-state detection: compare current form values against loaded profile
+  const isDirty = useMemo(() => {
+    if (!profile) return false;
+    return (
+      name !== (profile.name ?? "") ||
+      phone !== (profile.phone ?? "") ||
+      dateOfBirth !== (profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "") ||
+      gender !== (profile.gender ?? "") ||
+      city !== (profile.city ?? "") ||
+      country !== (profile.country ?? "") ||
+      language !== (profile.language ?? "English") ||
+      JSON.stringify([...interests].sort()) !==
+        JSON.stringify([...(profile.interests ?? [])].sort())
+    );
+  }, [profile, name, phone, dateOfBirth, gender, city, country, interests, language]);
+
   useEffect(() => {
     if (status === "loading") return;
     if (!session) {
@@ -133,11 +159,13 @@ export default function ProfilePage() {
       return;
     }
 
+    // Fetch profile, passes, and analytics eagerly in parallel
     Promise.all([
       api<Profile>("/api/user/profile"),
       api<Pass[]>("/api/user/passes"),
+      api<AnalyticsData>("/api/user/analytics").catch(() => null),
     ])
-      .then(([profileData, passesData]) => {
+      .then(([profileData, passesData, analyticsData]) => {
         setProfile(profileData);
         setName(profileData.name ?? "");
         setPhone(profileData.phone ?? "");
@@ -148,6 +176,7 @@ export default function ProfilePage() {
         setInterests(profileData.interests ?? []);
         setLanguage(profileData.language ?? "English");
         setPasses(passesData ?? []);
+        if (analyticsData) setAnalytics(analyticsData);
       })
       .catch((err) => showApiError(err, "Failed to load profile"))
       .finally(() => setLoading(false));
@@ -160,16 +189,6 @@ export default function ProfilePage() {
     }
   }, [searchParams, updateSession]);
 
-  // Fetch analytics when switching to analytics tab
-  useEffect(() => {
-    if (activeTab !== "analytics" || analytics) return;
-    setAnalyticsLoading(true);
-    api<Analytics>("/api/user/analytics")
-      .then(setAnalytics)
-      .catch((err) => showApiError(err, "Failed to load analytics"))
-      .finally(() => setAnalyticsLoading(false));
-  }, [activeTab, analytics]);
-
   function toggleInterest(interest: string) {
     setInterests((prev) =>
       prev.includes(interest)
@@ -178,8 +197,7 @@ export default function ProfilePage() {
     );
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSave() {
     setSaving(true);
     setSaved(false);
 
@@ -200,6 +218,7 @@ export default function ProfilePage() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
       setSaved(true);
       toast.success("Profile updated");
+      await updateSession();
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       showApiError(err, "Failed to save profile");
@@ -235,34 +254,70 @@ export default function ProfilePage() {
     (p) => new Date(p.expiresAt) <= new Date()
   );
 
+  const topCategories = analytics
+    ? Object.entries(analytics.categoryBreakdown)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 4)
+    : [];
+
   return (
     <PageTransition>
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Profile
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Manage your account, passes, and viewing insights.
-            </p>
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        {/* ─── 1. Profile Hero ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative overflow-hidden rounded-2xl border border-border bg-card"
+        >
+          {/* Banner background */}
+          <div className="h-28 w-full bg-gradient-to-br from-primary/20 via-card to-accent/10" />
+
+          {/* Avatar overlapping banner */}
+          <div className="relative px-6 pb-6">
+            <div className="-mt-14 flex flex-col items-center sm:flex-row sm:items-end sm:gap-5">
+              <div className="shrink-0">
+                <ProfileAvatar
+                  avatarUrl={profile?.avatarUrl}
+                  name={profile?.name}
+                  email={profile?.email}
+                  interests={profile?.interests}
+                  animated
+                  size="lg"
+                  className="h-24 w-24 ring-4 ring-card sm:h-28 sm:w-28"
+                />
+              </div>
+
+              <div className="mt-3 min-w-0 text-center sm:mb-1 sm:text-left">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  {profile?.name || "Your Profile"}
+                </h1>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {profile?.email}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  {profile?.emailVerified ? (
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[10px]">
+                      <ShieldCheck className="mr-1 h-3 w-3" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px]">
+                      Unverified
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px]">
-              {activePasses.length} active pass{activePasses.length === 1 ? "" : "es"}
-            </Badge>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/analytics">Analytics</Link>
-            </Button>
-          </div>
-        </div>
+        </motion.div>
 
         {/* Email verification banner */}
         {profile && !profile.emailVerified && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3"
+            className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3"
           >
             <Mail className="h-5 w-5 shrink-0 text-amber-500" />
             <p className="flex-1 text-sm text-amber-200">
@@ -288,7 +343,7 @@ export default function ProfilePage() {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3"
+            className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3"
           >
             <ShieldCheck className="h-5 w-5 text-green-400" />
             <p className="text-sm text-green-300">
@@ -297,53 +352,206 @@ export default function ProfilePage() {
           </motion.div>
         )}
 
-        {/* Tabs */}
-        <div className="mt-6 flex gap-1 rounded-lg border border-border bg-card p-1">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
+        {/* ─── 2. Quick Stats Bar ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="grid grid-cols-4 gap-3"
+        >
+          {[
+            {
+              icon: Ticket,
+              label: "Passes",
+              value: activePasses.length,
+            },
+            {
+              icon: Clock,
+              label: "Watch Time",
+              value: analytics ? formatWatchTime(analytics.totalWatchTime) : "—",
+            },
+            {
+              icon: Trophy,
+              label: "Matches",
+              value: analytics?.totalMatches ?? 0,
+            },
+            {
+              icon: Activity,
+              label: "Engagement",
+              value: analytics
+                ? `${Math.round(analytics.engagementScore)}%`
+                : "—",
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card p-3 text-center"
+            >
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+              <span className="text-lg font-bold tabular-nums leading-none">
+                {stat.value}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {stat.label}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* ─── 3. Your Activity ─── */}
+        {analytics && analytics.totalWatchTime > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+            className="space-y-4 rounded-2xl border border-border bg-card p-5"
+          >
+            <h2 className="text-sm font-semibold">Your Activity</h2>
+
+            {/* Favorite Categories */}
+            {topCategories.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Favorite Categories</p>
+                <div className="flex flex-wrap gap-2">
+                  {topCategories.map(([cat, seconds]) => (
+                    <Badge
+                      key={cat}
+                      variant="outline"
+                      className="gap-1 text-xs"
+                    >
+                      {cat.charAt(0) + cat.slice(1).toLowerCase()}
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatWatchTime(seconds)}
+                      </span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recently Watched */}
+            {analytics.recentActivity.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Recently Watched</p>
+                <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+                  {analytics.recentActivity.slice(0, 8).map((act) => (
+                    <div
+                      key={act.id}
+                      className="flex shrink-0 flex-col gap-1 rounded-lg border border-border bg-background/50 p-3 w-36"
+                    >
+                      <p className="truncate text-xs font-medium">
+                        {act.title ?? "Untitled"}
+                      </p>
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        {act.category && (
+                          <span className="truncate">{act.category}</span>
+                        )}
+                        {act.watchDuration > 0 && (
+                          <span className="tabular-nums">
+                            {Math.round(act.watchDuration / 60)}m
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Link
+              href="/analytics"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View full analytics
+            </Link>
+          </motion.div>
+        )}
+
+        {/* ─── 4. Passes ─── */}
+        {passes.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Ticket className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Match Passes</h2>
+              </div>
+              <Badge variant="outline" className="text-[10px]">
+                {activePasses.length} active
+              </Badge>
+            </div>
+
+            <div className="space-y-2">
+              {activePasses.map((pass) => (
+                <PassCard key={pass.id} pass={pass} active />
+              ))}
+              {expiredPasses.slice(0, 3).map((pass) => (
+                <PassCard key={pass.id} pass={pass} active={false} />
+              ))}
+            </div>
+
+            {passes.length === 0 && (
+              <div className="py-6 text-center text-muted-foreground text-sm">
+                <p>No match passes yet.</p>
+                <Button variant="outline" className="mt-3" size="sm" asChild>
+                  <Link href="/sports">Browse Matches</Link>
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ─── 5. Interests ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="rounded-2xl border border-border bg-card p-5"
+        >
+          <h2 className="text-sm font-semibold mb-3">Interests</h2>
+          <div className="flex flex-wrap gap-2">
+            {INTEREST_OPTIONS.map((opt) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-1 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] font-medium transition-colors sm:flex-row sm:gap-2 sm:px-3 sm:text-sm ${
-                  isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground/80"
+                key={opt}
+                type="button"
+                onClick={() => toggleInterest(opt)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  interests.includes(opt)
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
                 }`}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="profile-tab"
-                    className="gradient-accent absolute inset-0 rounded-md opacity-15"
-                    transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
-                  />
+                {interests.includes(opt) && (
+                  <Check className="mr-1 inline h-3 w-3" />
                 )}
-                <Icon className="h-4 w-4" />
-                <span className="relative">{tab.label}</span>
+                {opt}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </motion.div>
 
-        {/* Tab content */}
-        <AnimatePresence mode="wait">
-          {activeTab === "account" && (
-            <motion.div
-              key="account"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Profile Form */}
-              <div className="mt-6 rounded-xl border border-border bg-card p-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">Account Details</h2>
-                </div>
-
-                <form onSubmit={handleSave} className="space-y-4">
+        {/* ─── 6. Settings (Collapsible Accordion) ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="rounded-2xl border border-border bg-card px-5"
+        >
+          <Accordion type="single" collapsible>
+            {/* Profile Info */}
+            <AccordionItem value="profile-info">
+              <AccordionTrigger>
+                <span className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Profile Info
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Email</Label>
                     <div className="flex items-center gap-2">
@@ -359,7 +567,6 @@ export default function ProfilePage() {
                       )}
                     </div>
                   </div>
-
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
@@ -381,7 +588,6 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="dob">Date of Birth</Label>
@@ -394,9 +600,6 @@ export default function ProfilePage() {
                         className="[color-scheme:dark]"
                       />
                     </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="gender">Gender</Label>
                       <select
@@ -412,6 +615,51 @@ export default function ProfilePage() {
                         <option value="Prefer not to say">Prefer not to say</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Personalization */}
+            <AccordionItem value="personalization">
+              <AccordionTrigger>
+                <span className="flex items-center gap-2">
+                  <Languages className="h-4 w-4 text-muted-foreground" />
+                  Personalization
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="language">Language</Label>
+                    <select
+                      id="language"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [color-scheme:dark]"
+                    >
+                      {LANGUAGE_OPTIONS.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Location */}
+            <AccordionItem value="location" className="border-b-0">
+              <AccordionTrigger>
+                <span className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Location
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
                       <Input
@@ -444,280 +692,62 @@ export default function ProfilePage() {
                       </select>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Interests</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {INTEREST_OPTIONS.map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => toggleInterest(opt)}
-                          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                            interests.includes(opt)
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/50"
-                          }`}
-                        >
-                          {interests.includes(opt) && (
-                            <Check className="mr-1 inline h-3 w-3" />
-                          )}
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Language</Label>
-                    <select
-                      id="language"
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [color-scheme:dark]"
-                    >
-                      {LANGUAGE_OPTIONS.map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
-                    <Button
-                      type="submit"
-                      disabled={saving}
-                      className="gradient-accent border-0 text-white"
-                    >
-                      {saving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="mr-1 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                    {saved && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-1 text-sm text-green-500"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Saved
-                      </motion.span>
-                    )}
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "passes" && (
-            <motion.div
-              key="passes"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="mt-6 rounded-xl border border-border bg-card p-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <Ticket className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">Match Passes</h2>
                 </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </motion.div>
 
-                {passes.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
-                    <p>No match passes yet.</p>
-                    <Button variant="outline" className="mt-4" asChild>
-                      <Link href="/sports">Browse Matches</Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    {activePasses.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-muted-foreground">
-                          Active
-                        </h3>
-                        {activePasses.map((pass) => (
-                          <PassCard key={pass.id} pass={pass} active />
-                        ))}
-                      </div>
-                    )}
+        {/* Spacer for sticky save bar */}
+        <div className="h-16" />
+      </div>
 
-                    {expiredPasses.length > 0 && (
+      {/* ─── 7. Sticky Save Bar ─── */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed inset-x-0 bottom-0 z-40 md:bottom-0 bottom-[calc(5rem+env(safe-area-inset-bottom))]"
+          >
+            <div className="mx-auto max-w-3xl px-4">
+              <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-border bg-card/95 px-5 py-3 shadow-lg shadow-black/30 backdrop-blur-xl md:rounded-xl md:border-b md:mb-4">
+                <span className="text-sm text-muted-foreground">
+                  Unsaved changes
+                </span>
+                <div className="flex items-center gap-2">
+                  {saved && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center gap-1 text-sm text-green-500"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </motion.span>
+                  )}
+                  <Button
+                    size="sm"
+                    disabled={saving}
+                    onClick={handleSave}
+                    className="gradient-accent border-0 text-white"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
                       <>
-                        {activePasses.length > 0 && (
-                          <Separator className="my-5" />
-                        )}
-                        <div className="space-y-3">
-                          <h3 className="text-sm font-medium text-muted-foreground">
-                            Expired
-                          </h3>
-                          {expiredPasses.map((pass) => (
-                            <PassCard key={pass.id} pass={pass} active={false} />
-                          ))}
-                        </div>
+                        <Save className="mr-1 h-4 w-4" />
+                        Save
                       </>
                     )}
-                  </>
-                )}
+                  </Button>
+                </div>
               </div>
-            </motion.div>
-          )}
-
-          {activeTab === "analytics" && (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {analyticsLoading ? (
-                <div className="mt-6 flex justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : analytics && analytics.totalWatchTime > 0 ? (
-                <div className="mt-6 space-y-6">
-                  {/* Stats cards */}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <StatsCard
-                      icon={Clock}
-                      label="Watch Time"
-                      value={analytics.totalWatchTime}
-                      format="time"
-                      delay={0}
-                    />
-                    <StatsCard
-                      icon={Activity}
-                      label="Engagement"
-                      value={analytics.engagementScore}
-                      format="percent"
-                      delay={100}
-                    />
-                    <StatsCard
-                      icon={Star}
-                      label="Favorite"
-                      value={analytics.favoriteCategory?.toLowerCase() ?? "—"}
-                      delay={200}
-                    />
-                    <StatsCard
-                      icon={Trophy}
-                      label="Matches"
-                      value={analytics.totalMatches}
-                      format="number"
-                      delay={300}
-                    />
-                  </div>
-
-                  {/* Activity Heatmap */}
-                  <div className="rounded-xl border border-border bg-card p-5">
-                    <h3 className="mb-4 text-sm font-semibold flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                      Activity Heatmap
-                    </h3>
-                    <Heatmap data={analytics.weeklyHeatmap} />
-                  </div>
-
-                  {/* Category breakdown + Insights */}
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="rounded-xl border border-border bg-card p-5">
-                      <h3 className="mb-4 text-sm font-semibold">Category Breakdown</h3>
-                      <CategoryChart data={analytics.categoryBreakdown} />
-                    </div>
-
-                    {analytics.insights.length > 0 && (
-                      <div className="rounded-xl border border-border bg-card p-5">
-                        <h3 className="mb-4 text-sm font-semibold flex items-center gap-2">
-                          <Lightbulb className="h-4 w-4 text-amber-400" />
-                          Insights
-                        </h3>
-                        <div className="space-y-3">
-                          {analytics.insights.map((insight, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.1 + 0.4, duration: 0.3 }}
-                              className="flex items-start gap-2 text-sm text-muted-foreground"
-                            >
-                              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                              {insight}
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Recent activity */}
-                  {analytics.recentActivity.length > 0 && (
-                    <div className="rounded-xl border border-border bg-card p-5">
-                      <h3 className="mb-4 text-sm font-semibold">Recent Activity</h3>
-                      <div className="space-y-3">
-                        {analytics.recentActivity.map((act, i) => (
-                          <motion.div
-                            key={act.id}
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05, duration: 0.2 }}
-                            className="flex items-center justify-between rounded-lg border border-border p-3"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium">
-                                {act.title ?? "—"}
-                              </p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {new Date(act.createdAt).toLocaleDateString("en-ZW", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {act.category && (
-                                <Badge variant="outline" className="text-[10px]">
-                                  {act.category}
-                                </Badge>
-                              )}
-                              {act.watchDuration > 0 && (
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                  {Math.round(act.watchDuration / 60)}min
-                                </span>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-6 rounded-xl border border-border bg-card p-6">
-                  <div className="flex items-center gap-3 mb-5">
-                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                    <h2 className="text-lg font-semibold">Viewing Analytics</h2>
-                  </div>
-                  <div className="py-12 text-center text-muted-foreground">
-                    <BarChart3 className="mx-auto h-10 w-10 mb-3 opacity-40" />
-                    <p>Your viewing analytics will appear here.</p>
-                    <p className="mt-1 text-sm">
-                      Start watching content to generate insights.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }
@@ -733,17 +763,17 @@ function PassCard({ pass, active }: { pass: Pass; active: boolean }) {
 
   return (
     <div
-      className={`flex items-center justify-between rounded-lg border p-4 ${
+      className={`flex items-center justify-between rounded-lg border p-3 ${
         active
           ? "border-primary/30 bg-primary/5"
           : "border-border bg-background opacity-60"
       }`}
     >
-      <div>
-        <p className="font-medium">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">
           {pass.match.homeTeam} vs {pass.match.awayTeam}
         </p>
-        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+        <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
           <Calendar className="h-3 w-3" />
           {new Date(pass.match.kickoff).toLocaleDateString("en-ZW", {
             month: "short",
@@ -752,7 +782,7 @@ function PassCard({ pass, active }: { pass: Pass; active: boolean }) {
           })}
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {active ? (
           isUpcoming ? (
             <>
@@ -780,7 +810,7 @@ function PassCard({ pass, active }: { pass: Pass; active: boolean }) {
             </>
           )
         ) : (
-          <Badge variant="outline" className="text-muted-foreground">
+          <Badge variant="outline" className="text-muted-foreground text-[10px]">
             Expired
           </Badge>
         )}

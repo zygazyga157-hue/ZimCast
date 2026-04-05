@@ -3,7 +3,14 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Radio, Loader2, Tv, Trophy, Calendar as CalendarIcon } from "lucide-react";
+import { Radio, Loader2, Tv, Trophy, Calendar as CalendarIcon, Zap, Clock, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PageTransition } from "@/components/page-transition";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { SportsHero } from "@/components/sports-hero";
@@ -162,11 +169,21 @@ export default function SportsPage() {
       <PullToRefresh onRefresh={loadData}>
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Sports</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Live &amp; upcoming matches. Pay per match to stream.
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Sports</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Live &amp; upcoming matches. Pay per match to stream.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/live-tv">Live TV</Link>
+              </Button>
+              <Button size="sm" className="gradient-accent border-0 text-white" asChild>
+                <Link href="/profile">My Passes</Link>
+              </Button>
+            </div>
           </div>
 
           {loading ? (
@@ -174,18 +191,46 @@ export default function SportsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <>
+            <div className="space-y-6">
+              {/* Quick Stats Bar */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+              >
+                {[
+                  { icon: Zap, label: "Live Now", value: liveMatches.length, accent: liveMatches.length > 0 ? "text-red-400" : "" },
+                  { icon: Clock, label: "Upcoming", value: upcomingMatches.length, accent: upcomingMatches.length > 0 ? "text-amber-400" : "" },
+                  { icon: Trophy, label: "Today\u2019s Matches", value: matches.length, accent: "" },
+                  { icon: BarChart3, label: "Ended", value: endedMatches.length, accent: "" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card p-3 text-center"
+                  >
+                    <stat.icon className={`h-4 w-4 ${stat.accent || "text-muted-foreground"}`} />
+                    <span className={`text-lg font-bold tabular-nums leading-none ${stat.accent}`}>
+                      {stat.value}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {stat.label}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+
               {/* Hero */}
               {heroMatch && (
-                <section className="mb-8">
+                <section>
                   <SportsHero match={heroMatch} />
                 </section>
               )}
 
               {/* Today on ZimCast (EPG Sports) */}
               {epgSports.length > 0 && (
-                <section className="mb-8">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                     <Tv className="h-4 w-4 text-primary" />
                     Today on ZimCast
                   </h2>
@@ -202,7 +247,7 @@ export default function SportsPage() {
                           key={prog.id}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`rounded-lg border p-4 ${
+                          className={`rounded-xl border p-4 ${
                             isNow
                               ? "border-orange-500/40 bg-orange-500/5"
                               : "border-border bg-card"
@@ -243,9 +288,9 @@ export default function SportsPage() {
               )}
 
               {/* Filters + Match Grid */}
-              <section>
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <h2 className="text-lg font-semibold">Matches</h2>
+              <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <h2 className="text-sm font-semibold">Matches</h2>
                   <MatchFilters active={filter} onChange={setFilter} counts={counts} />
                 </div>
 
@@ -260,90 +305,103 @@ export default function SportsPage() {
                 )}
               </section>
 
-              {/* ZPLS Upcoming Fixtures */}
-              {zplsFixtures.length > 0 && (
-                <section className="mt-10">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                    <CalendarIcon className="h-4 w-4 text-primary" />
-                    ZPSL Upcoming Fixtures
-                  </h2>
-                  <div className="rounded-xl border border-border bg-card overflow-hidden">
-                    <div className="divide-y divide-border">
-                      {zplsFixtures.slice(0, 10).map((f) => (
-                        <div key={f.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                          <div className="flex flex-1 items-center gap-2 min-w-0">
-                            <TeamLogo src={f.home_logo} name={f.home_name} size={24} />
-                            <span className="truncate font-medium">{f.home_name}</span>
+              {/* ZPSL League Data */}
+              {(zplsFixtures.length > 0 || standings.length > 0) && (
+                <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                  <Accordion type="multiple">
+                    {zplsFixtures.length > 0 && (
+                      <AccordionItem value="fixtures">
+                        <AccordionTrigger className="hover:no-underline">
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <CalendarIcon className="h-4 w-4 text-primary" />
+                            ZPSL Upcoming Fixtures
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="rounded-xl border border-border overflow-hidden">
+                            <div className="divide-y divide-border">
+                              {zplsFixtures.slice(0, 10).map((f) => (
+                                <div key={f.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                                  <div className="flex flex-1 items-center gap-2 min-w-0">
+                                    <TeamLogo src={f.home_logo} name={f.home_name} size={24} />
+                                    <span className="truncate font-medium">{f.home_name}</span>
+                                  </div>
+                                  <span className="text-xs font-medium text-muted-foreground shrink-0">vs</span>
+                                  <div className="flex flex-1 items-center gap-2 min-w-0 flex-row-reverse">
+                                    <TeamLogo src={f.away_logo} name={f.away_name} size={24} />
+                                    <span className="truncate text-right font-medium">{f.away_name}</span>
+                                  </div>
+                                  <div className="shrink-0 text-right text-xs text-muted-foreground w-20">
+                                    <div>{f.date}</div>
+                                    <div>{f.time?.slice(0, 5)}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <span className="text-xs font-medium text-muted-foreground shrink-0">vs</span>
-                          <div className="flex flex-1 items-center gap-2 min-w-0 flex-row-reverse">
-                            <TeamLogo src={f.away_logo} name={f.away_name} size={24} />
-                            <span className="truncate text-right font-medium">{f.away_name}</span>
-                          </div>
-                          <div className="shrink-0 text-right text-xs text-muted-foreground w-20">
-                            <div>{f.date}</div>
-                            <div>{f.time?.slice(0, 5)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    )}
 
-              {/* ZPSL League Standings */}
-              {standings.length > 0 && (
-                <section className="mt-10">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                    <Trophy className="h-4 w-4 text-primary" />
-                    ZPSL Standings
-                  </h2>
-                  <div className="rounded-xl border border-border bg-card overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                          <th className="px-4 py-2.5 font-medium w-8">#</th>
-                          <th className="px-4 py-2.5 font-medium">Team</th>
-                          <th className="px-4 py-2.5 font-medium text-center">P</th>
-                          <th className="px-4 py-2.5 font-medium text-center">W</th>
-                          <th className="px-4 py-2.5 font-medium text-center">D</th>
-                          <th className="px-4 py-2.5 font-medium text-center">L</th>
-                          <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GF</th>
-                          <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GA</th>
-                          <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GD</th>
-                          <th className="px-4 py-2.5 font-medium text-center">Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {standings.map((team, i) => (
-                          <tr key={team.team_id} className={`border-b border-border last:border-0 ${i < 3 ? "bg-primary/[0.02]" : ""}`}>
-                            <td className="px-4 py-2.5 font-medium text-muted-foreground">{team.rank}</td>
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <TeamLogo src={team.logo} name={team.name} size={20} />
-                                <span className="font-medium truncate max-w-[140px]">{team.name}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2.5 text-center text-muted-foreground">{team.matches}</td>
-                            <td className="px-4 py-2.5 text-center">{team.won}</td>
-                            <td className="px-4 py-2.5 text-center text-muted-foreground">{team.draw}</td>
-                            <td className="px-4 py-2.5 text-center text-muted-foreground">{team.lost}</td>
-                            <td className="px-4 py-2.5 text-center text-muted-foreground hidden sm:table-cell">{team.goals_scored}</td>
-                            <td className="px-4 py-2.5 text-center text-muted-foreground hidden sm:table-cell">{team.goals_conceded}</td>
-                            <td className="px-4 py-2.5 text-center hidden sm:table-cell">
-                              <span className={team.goal_diff > 0 ? "text-green-400" : team.goal_diff < 0 ? "text-red-400" : "text-muted-foreground"}>
-                                {team.goal_diff > 0 ? "+" : ""}{team.goal_diff}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-center font-bold">{team.points}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    {standings.length > 0 && (
+                      <AccordionItem value="standings">
+                        <AccordionTrigger className="hover:no-underline">
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <Trophy className="h-4 w-4 text-primary" />
+                            ZPSL Standings
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="rounded-xl border border-border overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                                  <th className="px-4 py-2.5 font-medium w-8">#</th>
+                                  <th className="px-4 py-2.5 font-medium">Team</th>
+                                  <th className="px-4 py-2.5 font-medium text-center">P</th>
+                                  <th className="px-4 py-2.5 font-medium text-center">W</th>
+                                  <th className="px-4 py-2.5 font-medium text-center">D</th>
+                                  <th className="px-4 py-2.5 font-medium text-center">L</th>
+                                  <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GF</th>
+                                  <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GA</th>
+                                  <th className="px-4 py-2.5 font-medium text-center hidden sm:table-cell">GD</th>
+                                  <th className="px-4 py-2.5 font-medium text-center">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {standings.map((team, i) => (
+                                  <tr key={team.team_id} className={`border-b border-border last:border-0 ${i < 3 ? "bg-primary/[0.02]" : ""}`}>
+                                    <td className="px-4 py-2.5 font-medium text-muted-foreground">{team.rank}</td>
+                                    <td className="px-4 py-2.5">
+                                      <div className="flex items-center gap-2">
+                                        <TeamLogo src={team.logo} name={team.name} size={20} />
+                                        <span className="font-medium truncate max-w-[140px]">{team.name}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-center text-muted-foreground">{team.matches}</td>
+                                    <td className="px-4 py-2.5 text-center">{team.won}</td>
+                                    <td className="px-4 py-2.5 text-center text-muted-foreground">{team.draw}</td>
+                                    <td className="px-4 py-2.5 text-center text-muted-foreground">{team.lost}</td>
+                                    <td className="px-4 py-2.5 text-center text-muted-foreground hidden sm:table-cell">{team.goals_scored}</td>
+                                    <td className="px-4 py-2.5 text-center text-muted-foreground hidden sm:table-cell">{team.goals_conceded}</td>
+                                    <td className="px-4 py-2.5 text-center hidden sm:table-cell">
+                                      <span className={team.goal_diff > 0 ? "text-green-400" : team.goal_diff < 0 ? "text-red-400" : "text-muted-foreground"}>
+                                        {team.goal_diff > 0 ? "+" : ""}{team.goal_diff}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-center font-bold">{team.points}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )}
+                  </Accordion>
                 </section>
               )}
-            </>
+            </div>
           )}
         </div>
       </PullToRefresh>

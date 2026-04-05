@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Trophy, Newspaper, Music, Film, Tv, Radio } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Trophy, Newspaper, Music, Film, Tv, Radio, Gamepad2, Plane, UtensilsCrossed, Cpu, Shirt, Dumbbell, Palette } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Program {
   id: string;
@@ -30,6 +33,13 @@ const categoryIcons: Record<string, typeof Trophy> = {
   ENTERTAINMENT: Film,
   MUSIC: Music,
   DOCUMENTARY: Tv,
+  GAMING: Gamepad2,
+  TRAVEL: Plane,
+  FOOD: UtensilsCrossed,
+  TECH: Cpu,
+  FASHION: Shirt,
+  FITNESS: Dumbbell,
+  ART: Palette,
   OTHER: Tv,
 };
 
@@ -39,38 +49,30 @@ const categoryColors: Record<string, string> = {
   ENTERTAINMENT: "border-pink-500/40 bg-pink-500/10 text-pink-400",
   MUSIC: "border-green-500/40 bg-green-500/10 text-green-400",
   DOCUMENTARY: "border-purple-500/40 bg-purple-500/10 text-purple-400",
+  GAMING: "border-indigo-500/40 bg-indigo-500/10 text-indigo-400",
+  TRAVEL: "border-teal-500/40 bg-teal-500/10 text-teal-400",
+  FOOD: "border-amber-500/40 bg-amber-500/10 text-amber-400",
+  TECH: "border-slate-500/40 bg-slate-500/10 text-slate-400",
+  FASHION: "border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-400",
+  FITNESS: "border-lime-500/40 bg-lime-500/10 text-lime-400",
+  ART: "border-rose-500/40 bg-rose-500/10 text-rose-400",
   OTHER: "border-border bg-muted text-muted-foreground",
 };
 
 export function EpgFullSchedule({ programs, currentProgramId }: EpgFullScheduleProps) {
-  const [expanded, setExpanded] = useState(false);
-
   if (programs.length === 0) return null;
 
   const now = new Date();
 
   return (
     <div className="mt-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setExpanded(!expanded)}
-        className="mb-2 text-muted-foreground hover:text-foreground"
-      >
-        <ChevronDown className={`mr-1.5 h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
-        {expanded ? "Hide" : "View"} Full Day Schedule
-      </Button>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="relative border-l-2 border-border/50 pl-4 ml-3 space-y-1">
+      <Accordion type="single" collapsible>
+        <AccordionItem value="schedule" className="border-0">
+          <AccordionTrigger className="rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:no-underline">
+            Full Day Schedule
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="relative border-l-2 border-border/50 pl-4 ml-3 space-y-1 pt-2">
               {programs.map((program) => {
                 const start = new Date(program.startTime);
                 const end = new Date(program.endTime);
@@ -91,10 +93,8 @@ export function EpgFullSchedule({ programs, currentProgramId }: EpgFullScheduleP
                   : program.title;
 
                 return (
-                  <motion.div
+                  <div
                     key={program.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
                     className={`relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
                       isCurrent
                         ? "border-primary/40 bg-primary/5"
@@ -136,13 +136,13 @@ export function EpgFullSchedule({ programs, currentProgramId }: EpgFullScheduleP
                         NOW
                       </span>
                     )}
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Tv,
   Trophy,
   Shield,
   Smartphone,
-  CalendarDays,
-  UserPlus,
   CreditCard,
   Play,
-  Star,
   ArrowRight,
   ChevronRight,
+  Radio,
+  User,
+  Building2,
+  Cpu,
+  Server,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/page-transition";
@@ -29,83 +32,74 @@ interface LiveMatch {
 
 const features = [
   {
-    icon: Tv,
-    title: "Live ZTV",
-    description: "Watch Zimbabwe Television live, anytime, anywhere on any device.",
+    icon: Radio,
+    title: "ZBC/ZTV Free Streaming",
+    description:
+      "Full free-to-air ZBC and ZTV access live on your phone. No antenna, no satellite. Just data and a profile.",
   },
   {
     icon: Trophy,
-    title: "Sports",
-    description: "Football, cricket, rugby — stream every match as it happens.",
+    title: "Zim Football Gateway",
+    description:
+      "Warriors, PSL, Dynamos derbies — a premium section with live matches and upcoming fixture calendars.",
   },
   {
     icon: CreditCard,
-    title: "Pay-Per-View",
-    description: "Only pay for what you watch. No subscriptions, no commitment.",
+    title: "Pay-Per-Match Access",
+    description:
+      "Micro-payments per match via EcoCash or Paynow. No subscriptions, instant unlock.",
   },
   {
     icon: Smartphone,
     title: "Mobile First",
-    description: "Optimised for mobile with adaptive bitrate streaming.",
+    description:
+      "Adaptive bitrate streaming optimised for every screen size and connection speed.",
   },
   {
     icon: Shield,
     title: "Secure Streams",
-    description: "Token-authenticated HLS with encrypted delivery.",
+    description:
+      "Token-authenticated HLS with encrypted delivery — only verified users access paid streams.",
   },
   {
-    icon: CalendarDays,
-    title: "EPG Guide",
-    description: "Full programme schedule so you never miss what matters.",
+    icon: User,
+    title: "Smart Profile",
+    description:
+      "One registration captures your preferences — powering your match history and pass tracking.",
   },
 ];
 
 const steps = [
   {
-    icon: UserPlus,
-    title: "Create Account",
-    description: "Sign up in seconds — free forever.",
+    icon: Building2,
+    title: "Source — ZBC Studios",
+    description: "ZBC broadcasts their live signal from Pockets Hill, Harare.",
   },
   {
-    icon: CreditCard,
-    title: "Pay for a Match",
-    description: "Use EcoCash or Paynow. Instant unlock.",
+    icon: Cpu,
+    title: "Encoder — Hardware Capture",
+    description:
+      "A hardware encoder converts the broadcast into HLS/DASH — the format mobile devices understand.",
+  },
+  {
+    icon: Server,
+    title: "Stream Server — ZimCast Backend",
+    description:
+      "The digital stream is secured by ZimCast's backend, handling token auth and pay-per-view access control.",
   },
   {
     icon: Play,
-    title: "Start Watching",
-    description: "HD streams ready on any device.",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Tatenda M.",
-    location: "Harare",
-    quote:
-      "I can finally watch Warriors matches from work without dodgy links. ZimCast is a game-changer!",
-    stars: 5,
-  },
-  {
-    name: "Rudo K.",
-    location: "Bulawayo",
-    quote:
-      "The EcoCash integration is seamless — I paid once and was streaming in under 10 seconds.",
-    stars: 5,
-  },
-  {
-    name: "Tinotenda C.",
-    location: "Mutare",
-    quote:
-      "Love that there are no subscriptions. I only pay when there is a match I actually want to watch.",
-    stars: 4,
+    title: "App — ZimCast",
+    description:
+      "Delivered live to your screen — in the resolution your data plan can handle.",
   },
 ];
 
 const stats = [
-  { value: "10K+", label: "Users" },
-  { value: "50+", label: "Matches" },
-  { value: "24/7", label: "Live TV" },
+  { value: "$2.99", label: "Per Match" },
+  { value: "HD", label: "Stream Quality" },
+  { value: "0s", label: "Signup Delay" },
+  { value: "PSL", label: "+ Internationals" },
 ];
 
 /* ---------- animation variants ---------- */
@@ -155,7 +149,7 @@ export default function HomePage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                 </span>
-                Now Streaming
+                Zimbabwe&apos;s Premier Streaming Platform
               </span>
             </motion.div>
 
@@ -165,8 +159,8 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl"
             >
-              Stream Live from{" "}
-              <span className="gradient-accent-text">Zimbabwe</span>
+              Live Football. Live TV.{" "}
+              <span className="gradient-accent-text">One App.</span>
             </motion.h1>
 
             <motion.p
@@ -175,8 +169,9 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground sm:text-xl"
             >
-              Watch live sports matches and ZTV. Pay per match with EcoCash or
-              Paynow — no subscriptions, no contracts.
+              Stream ZBC/ZTV free or unlock live Zimbabwe football
+              match-by-match. Pay what makes sense, stream without breaking the
+              bank.
             </motion.p>
 
             <motion.div
@@ -222,32 +217,391 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== LIVE NOW TICKER ===== */}
-      {liveMatches.length > 0 && (
-        <section className="border-y border-border bg-card/50">
-          <div className="mx-auto flex max-w-7xl items-center gap-4 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
-            <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-primary">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+      {/* ===== TICKER ===== */}
+      <section className="border-y border-border bg-card/50 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            {/* Fixed label */}
+            {liveMatches.length > 0 ? (
+              <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-primary">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                </span>
+                LIVE NOW
               </span>
-              LIVE NOW
-            </span>
-            <div className="h-4 w-px bg-border" />
-            {liveMatches.map((m) => (
-              <Link
-                key={m.id}
-                href={`/sports/${m.id}`}
-                className="flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+            ) : (
+              <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-primary">
+                ZIMCAST
+              </span>
+            )}
+            <div className="h-4 w-px shrink-0 bg-border" />
+
+            {/* Scrolling pills */}
+            <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+              <motion.div
+                className="flex w-max items-center gap-4"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  x: { duration: 20, repeat: Infinity, ease: "linear" },
+                }}
               >
-                <span className="font-medium">{m.homeTeam}</span>
-                <span className="text-muted-foreground">vs</span>
-                <span className="font-medium">{m.awayTeam}</span>
-              </Link>
-            ))}
+                {/* Render pills twice for seamless loop */}
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    {liveMatches.length > 0
+                      ? liveMatches.map((m) => (
+                          <Link
+                            key={`${i}-${m.id}`}
+                            href={`/sports/${m.id}`}
+                            className="flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+                          >
+                            <span className="font-medium">{m.homeTeam}</span>
+                            <span className="text-muted-foreground">vs</span>
+                            <span className="font-medium">{m.awayTeam}</span>
+                          </Link>
+                        ))
+                      : [
+                          "Live Football",
+                          "ZBC/ZTV Free",
+                          "Pay-Per-Match",
+                          "EcoCash & Paynow",
+                          "PSL Matches",
+                          "Warriors",
+                        ].map((item) => (
+                          <span
+                            key={`${i}-${item}`}
+                            className="shrink-0 rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm text-muted-foreground"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                  </div>
+                ))}
+              </motion.div>
+            </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
+
+      {/* ===== ZBC PARTNERSHIP STRIP ===== */}
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="border-y border-border bg-card/30"
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="rounded-md bg-white p-1">
+              <Image
+                src="/zbc-logo.png"
+                alt="Zimbabwe Broadcasting Corporation"
+                width={48}
+                height={48}
+                className="h-10 w-auto"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground/80">
+                Zimbabwe Broadcasting Corp.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Official Broadcast Signal Partner &middot; ZBC, Pockets Hill,
+                Harare
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* ===== MODE SPLIT ===== */}
+      <section className="py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <motion.h2
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="text-2xl font-bold sm:text-3xl lg:text-4xl"
+            >
+              Two Platforms.{" "}
+              <span className="gradient-accent-text">One App.</span>
+            </motion.h2>
+          </div>
+
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-80px" }}
+            className="mx-auto mt-14 grid max-w-3xl gap-6 sm:grid-cols-2"
+          >
+            {/* Football card */}
+            <motion.div
+              variants={fadeUp}
+              className="rounded-xl border border-primary/30 bg-card p-6"
+            >
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
+                Premium
+              </span>
+              <h3 className="mt-4 text-xl font-bold tracking-tight">
+                LIVE FOOTBALL
+              </h3>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">$2.99</span>
+                <span className="text-sm text-muted-foreground">/ match</span>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Warriors AFCON qualifiers. PSL derbies. Dynamos vs Caps United
+                &mdash; buy only the match you actually want.
+              </p>
+              <Button
+                className="gradient-accent mt-6 w-full border-0 text-white"
+                asChild
+              >
+                <Link href="/sports">Browse Matches</Link>
+              </Button>
+            </motion.div>
+
+            {/* ZTV card */}
+            <motion.div
+              variants={fadeUp}
+              className="rounded-xl border border-border bg-card p-6"
+            >
+              <span className="rounded-full border border-green-500/30 bg-green-500/10 px-3 py-0.5 text-xs font-medium text-green-500">
+                Free to Air
+              </span>
+              <h3 className="mt-4 text-xl font-bold tracking-tight">
+                ZBC/ZTV LIVE
+              </h3>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">Free</span>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                All ZBC/ZTV channels, live on your phone. News, entertainment,
+                sport highlights &mdash; the full national broadcast.
+              </p>
+              <Button className="mt-6 w-full" variant="outline" asChild>
+                <Link href="/live-tv">Watch ZTV Free</Link>
+              </Button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== FOOTBALL SECTION ===== */}
+      <section className="border-t border-border bg-card/30 py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Text */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Football Platform
+              </span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                Zimbabwe Football.{" "}
+                <span className="gradient-accent-text">Live.</span>
+              </h2>
+              <p className="mt-4 max-w-lg text-muted-foreground">
+                From Warriors AFCON qualifiers to PSL derbies, ZimCast&apos;s
+                Football Gateway is built for fans who refuse to miss a minute
+                &mdash; at a price that actually makes sense.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {stats.map((s, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-border bg-background/50 p-3 text-center"
+                  >
+                    <p className="text-xl font-bold">{s.value}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {s.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Pitch SVG */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex justify-center"
+            >
+              <svg
+                className="w-full max-w-[420px]"
+                viewBox="0 0 480 580"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <filter id="ballGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                    <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.3  0 0 0 0 0  0 0 0 0 0.1  0 0 0 0.5 0" result="glow" />
+                    <feMerge>
+                      <feMergeNode in="glow" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                {/* Pitch surface */}
+                <rect x="20" y="20" width="440" height="540" rx="10" fill="#0d2a1a" />
+                <rect x="20" y="20" width="440" height="540" rx="10" fill="none" stroke="#1f4f30" strokeWidth="2.5" />
+
+                {/* Grass stripes */}
+                <rect x="20" y="20" width="440" height="54" fill="#0f3320" />
+                <rect x="20" y="128" width="440" height="54" fill="#0f3320" />
+                <rect x="20" y="236" width="440" height="54" fill="#0f3320" />
+                <rect x="20" y="344" width="440" height="54" fill="#0f3320" />
+                <rect x="20" y="452" width="440" height="54" fill="#0f3320" />
+
+                {/* Halfway line + centre circle */}
+                <line x1="20" y1="290" x2="460" y2="290" stroke="#2a8040" strokeWidth="2" />
+                <circle cx="240" cy="290" r="65" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <circle cx="240" cy="290" r="3" fill="#2a8040" />
+
+                {/* Top penalty area */}
+                <rect x="130" y="20" width="220" height="80" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <rect x="175" y="20" width="130" height="44" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <rect x="200" y="14" width="80" height="12" rx="2" fill="#1a5030" stroke="#FF416C" strokeWidth="1.5" />
+
+                {/* Bottom penalty area */}
+                <rect x="130" y="460" width="220" height="80" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <rect x="175" y="496" width="130" height="44" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <rect x="200" y="554" width="80" height="12" rx="2" fill="#1a5030" stroke="#FF416C" strokeWidth="1.5" />
+
+                {/* Corner arcs */}
+                <path d="M20 40 A16 16 0 0 1 36 24" fill="none" stroke="#2a8040" strokeWidth="1.5" />
+                <path d="M444 24 A16 16 0 0 1 460 40" fill="none" stroke="#2a8040" strokeWidth="1.5" />
+                <path d="M20 540 A16 16 0 0 0 36 556" fill="none" stroke="#2a8040" strokeWidth="1.5" />
+                <path d="M444 556 A16 16 0 0 0 460 540" fill="none" stroke="#2a8040" strokeWidth="1.5" />
+
+                {/* Penalty spots + arcs */}
+                <circle cx="240" cy="80" r="3" fill="#2a8040" />
+                <circle cx="240" cy="500" r="3" fill="#2a8040" />
+                <path d="M175 100 A65 65 0 0 1 305 100" fill="none" stroke="#2a8040" strokeWidth="2" />
+                <path d="M175 460 A65 65 0 0 0 305 460" fill="none" stroke="#2a8040" strokeWidth="2" />
+
+                {/* Football with glow + float animation */}
+                <g className="ball-float" filter="url(#ballGlow)">
+                  <circle cx="240" cy="270" r="22" fill="#fff" stroke="#222" strokeWidth="1.5" />
+                  <polygon points="240,252 249,257 249,267 240,272 231,267 231,257" fill="#222" stroke="#fff" strokeWidth="1" />
+                  <polygon points="240,272 249,277 251,287 240,293 229,287 231,277" fill="none" stroke="#222" strokeWidth="0.8" />
+                  <polygon points="249,257 260,255 266,264 261,273 249,273" fill="none" stroke="#222" strokeWidth="0.8" />
+                  <polygon points="231,257 220,255 214,264 219,273 231,273" fill="none" stroke="#222" strokeWidth="0.8" />
+                </g>
+
+                {/* ===== TEAM A — Warriors (top half, 4-4-2) ===== */}
+                {/* GK #1 */}
+                <circle cx="240" cy="40" r="9" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="240" y="44" fontFamily="Inter,system-ui,sans-serif" fontSize="9" fontWeight="700" fill="#fff" textAnchor="middle">1</text>
+
+                {/* Defenders: #2 LB, #5 CB, #4 CB, #3 RB */}
+                <circle cx="90" cy="105" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="90" y="109" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">2</text>
+                <circle cx="190" cy="105" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="190" y="109" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">5</text>
+                <circle cx="290" cy="105" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="290" y="109" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">4</text>
+                <circle cx="390" cy="105" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="390" y="109" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">3</text>
+
+                {/* Midfielders: #11 LM, #8 CM, #6 CM, #7 RM */}
+                <circle cx="90" cy="185" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="90" y="189" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">11</text>
+                <circle cx="190" cy="185" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="190" y="189" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">8</text>
+                <circle cx="290" cy="185" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="290" y="189" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">6</text>
+                <circle cx="390" cy="185" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="390" y="189" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">7</text>
+
+                {/* Forwards: #9 ST, #10 ST */}
+                <circle cx="195" cy="255" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="195" y="259" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">9</text>
+                <circle cx="285" cy="255" r="8" fill="#FF416C" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="285" y="259" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">10</text>
+
+                {/* ===== TEAM B — Bafana (bottom half, 4-4-2) ===== */}
+                {/* GK #1 */}
+                <circle cx="240" cy="540" r="9" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="240" y="544" fontFamily="Inter,system-ui,sans-serif" fontSize="9" fontWeight="700" fill="#fff" textAnchor="middle">1</text>
+
+                {/* Defenders: #3 LB, #4 CB, #5 CB, #2 RB */}
+                <circle cx="90" cy="475" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="90" y="479" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">3</text>
+                <circle cx="190" cy="475" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="190" y="479" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">4</text>
+                <circle cx="290" cy="475" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="290" y="479" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">5</text>
+                <circle cx="390" cy="475" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="390" y="479" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">2</text>
+
+                {/* Midfielders: #7 LM, #6 CM, #8 CM, #11 RM */}
+                <circle cx="90" cy="395" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="90" y="399" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">7</text>
+                <circle cx="190" cy="395" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="190" y="399" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">6</text>
+                <circle cx="290" cy="395" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="290" y="399" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">8</text>
+                <circle cx="390" cy="395" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="390" y="399" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">11</text>
+
+                {/* Forwards: #9 ST, #10 ST */}
+                <circle cx="195" cy="325" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="195" y="329" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">9</text>
+                <circle cx="285" cy="325" r="8" fill="#D42B2B" stroke="#0d2a1a" strokeWidth="2" />
+                <text x="285" y="329" fontFamily="Inter,system-ui,sans-serif" fontSize="8" fontWeight="700" fill="#fff" textAnchor="middle">10</text>
+
+                {/* Score overlay */}
+                <rect
+                  x="154"
+                  y="506"
+                  width="172"
+                  height="48"
+                  rx="6"
+                  fill="rgba(0,0,0,0.7)"
+                  stroke="rgba(255,65,108,0.3)"
+                  strokeWidth="1"
+                />
+                <text
+                  x="240"
+                  y="524"
+                  fontFamily="Inter,system-ui,sans-serif"
+                  fontSize="11"
+                  fill="rgba(255,255,255,0.6)"
+                  textAnchor="middle"
+                  letterSpacing="2"
+                >
+                  WARRIORS vs BAFANA
+                </text>
+                <text
+                  x="240"
+                  y="546"
+                  fontFamily="Inter,system-ui,sans-serif"
+                  fontSize="24"
+                  fontWeight="700"
+                  fill="#FF416C"
+                  textAnchor="middle"
+                  letterSpacing="4"
+                >
+                  1 &mdash; 0
+                </text>
+              </svg>
+            </motion.div>
+          </div>
+        </div>
+      </section>
 
       {/* ===== FEATURES ===== */}
       <section className="py-20 sm:py-28">
@@ -260,7 +614,8 @@ export default function HomePage() {
               transition={{ duration: 0.5 }}
               className="text-2xl font-bold sm:text-3xl lg:text-4xl"
             >
-              Everything You Need to Watch
+              Built for{" "}
+              <span className="gradient-accent-text">Zimbabwe.</span>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -269,7 +624,8 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="mx-auto mt-3 max-w-md text-muted-foreground"
             >
-              Simple, affordable, and built for Zimbabwe.
+              Every feature designed around the realities of streaming in
+              Zimbabwe — from data costs to payment methods.
             </motion.p>
           </div>
 
@@ -307,112 +663,158 @@ export default function HomePage() {
       <section className="border-t border-border bg-card/30 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
+            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Technical Flow
+            </span>
             <motion.h2
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="text-2xl font-bold sm:text-3xl lg:text-4xl"
+              className="mt-3 text-2xl font-bold sm:text-3xl lg:text-4xl"
             >
-              Get Started in 3 Steps
-            </motion.h2>
-          </div>
-
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-            className="relative mt-16 grid gap-8 sm:grid-cols-3"
-          >
-            {/* connecting line (desktop) */}
-            <div className="pointer-events-none absolute left-[16.7%] right-[16.7%] top-10 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent sm:block" />
-
-            {steps.map((s, i) => (
-              <motion.div
-                key={s.title}
-                variants={fadeUp}
-                className="relative flex flex-col items-center text-center"
-              >
-                <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary/30 bg-background">
-                  <span className="gradient-accent-text text-2xl font-bold">
-                    {i + 1}
-                  </span>
-                </div>
-                <div className="gradient-accent mt-4 flex h-10 w-10 items-center justify-center rounded-lg">
-                  <s.icon className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold">{s.title}</h3>
-                <p className="mt-2 max-w-[240px] text-sm text-muted-foreground">
-                  {s.description}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== TESTIMONIALS ===== */}
-      <section className="border-t border-border py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <motion.h2
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="text-2xl font-bold sm:text-3xl lg:text-4xl"
-            >
-              Loved by Zimbabweans
+              From Pockets Hill to Your{" "}
+              <span className="gradient-accent-text">Palm.</span>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="mx-auto mt-3 max-w-md text-muted-foreground"
+              className="mx-auto mt-3 max-w-lg text-muted-foreground"
             >
-              See what our viewers have to say.
+              A four-step bridge that turns ZBC&apos;s broadcast into a
+              mobile-ready stream, delivered to your phone wherever you are in
+              Zimbabwe.
             </motion.p>
           </div>
 
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {testimonials.map((t) => (
-              <motion.div
-                key={t.name}
-                variants={fadeUp}
-                className="rounded-xl border border-border bg-card p-6"
-              >
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-4 w-4 ${
-                        i < t.stars
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "text-border"
-                      }`}
-                    />
-                  ))}
+          <div className="mt-16 grid gap-12 lg:grid-cols-2">
+            {/* Steps */}
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-80px" }}
+              className="space-y-6"
+            >
+              {steps.map((s, i) => (
+                <motion.div
+                  key={s.title}
+                  variants={fadeUp}
+                  className="flex items-start gap-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-background">
+                    <span className="gradient-accent-text text-sm font-bold">
+                      {i + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold">{s.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {s.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Architecture cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col items-center gap-2"
+            >
+              {[
+                {
+                  icon: Building2,
+                  label: "Source",
+                  title: "ZBC Pockets Hill Studio",
+                  highlight: false,
+                },
+                {
+                  icon: Cpu,
+                  label: "Encode",
+                  title: "HLS / DASH Encoder",
+                  highlight: false,
+                },
+                {
+                  icon: Server,
+                  label: "Distribute",
+                  title: "ZimCast Stream Server",
+                  highlight: false,
+                },
+                {
+                  icon: Play,
+                  label: "Deliver",
+                  title: "ZimCast App",
+                  highlight: true,
+                },
+              ].map((card, idx, arr) => (
+                <div key={card.label} className="flex w-full max-w-xs flex-col items-center">
+                  <div
+                    className={`flex w-full items-center gap-3 rounded-lg border p-4 ${
+                      card.highlight
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <div className="gradient-accent flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                      <card.icon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                        {card.label}
+                      </p>
+                      <p
+                        className={`text-sm font-semibold ${
+                          card.highlight
+                            ? "gradient-accent-text"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {card.title}
+                      </p>
+                    </div>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <span className="py-1 text-lg text-muted-foreground/40">
+                      &#8595;
+                    </span>
+                  )}
                 </div>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="mt-4 border-t border-border pt-4">
-                  <p className="text-sm font-medium">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.location}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </section>
+
+      {/* ===== PAYMENT STRIP ===== */}
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="border-y border-border bg-card/30"
+      >
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-3 px-4 py-5 sm:flex-row sm:gap-6 sm:px-6 lg:px-8">
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Accepted Payment Methods
+          </span>
+          <div className="flex items-center gap-3">
+            {["EcoCash", "Paynow"].map((method) => (
+              <span
+                key={method}
+                className="rounded border border-border px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+              >
+                {method}
+              </span>
+            ))}
+          </div>
+        </div>
+      </motion.section>
 
       {/* ===== PRICING PREVIEW ===== */}
       <section className="border-t border-border bg-card/30 py-20 sm:py-28">
@@ -425,7 +827,7 @@ export default function HomePage() {
               transition={{ duration: 0.5 }}
               className="text-2xl font-bold sm:text-3xl lg:text-4xl"
             >
-              No Subscriptions. Ever.
+              Watch More, <span className="gradient-accent-text">Pay Less.</span>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -434,7 +836,8 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="mx-auto mt-3 max-w-lg text-muted-foreground"
             >
-              Pay only for the matches you want. ZTV is always free.
+              No hefty subscriptions. Free ZTV or a $2.99 match pass &mdash;
+              it&apos;s always your choice.
             </motion.p>
           </div>
 
@@ -467,6 +870,13 @@ export default function HomePage() {
                 <span className="text-xl font-semibold">15 ZiG</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">per match</p>
+              <hr className="mt-4 border-border" />
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li>Live match stream (HD)</li>
+                <li>Instant access at kick-off</li>
+                <li>PSL &amp; Warriors matches</li>
+                <li>EcoCash &amp; Paynow</li>
+              </ul>
               <Button
                 className="gradient-accent mt-6 w-full border-0 text-white"
                 asChild
@@ -496,6 +906,13 @@ export default function HomePage() {
               <p className="mt-2 text-xs text-muted-foreground">
                 no account required
               </p>
+              <hr className="mt-4 border-border" />
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li>Live ZBC/ZTV stream</li>
+                <li>News, entertainment &amp; sport</li>
+                <li>Smart Profile system</li>
+                <li>Always free</li>
+              </ul>
               <Button className="mt-6 w-full" variant="outline" asChild>
                 <Link href="/live-tv">Watch Now</Link>
               </Button>
@@ -515,7 +932,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="text-2xl font-bold sm:text-3xl lg:text-4xl"
           >
-            Ready to Start Streaming?
+            Zimbabwe Watches Together.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -524,8 +941,8 @@ export default function HomePage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mx-auto mt-4 max-w-md text-muted-foreground"
           >
-            Create a free account and pay only for the matches you want to
-            watch.
+            Free ZTV streaming. Live football on demand. One app built for every
+            Zimbabwean with a phone and a love for their country.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -544,6 +961,18 @@ export default function HomePage() {
               </Link>
             </Button>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ===== PAGE FOOTER TAGLINES ===== */}
+      <section className="border-t border-border py-10">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Zimbabwe&apos;s Integrated Media &amp; Sports App
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground/60">
+            Powered by ZBC Signal &middot; Pockets Hill, Harare
+          </p>
         </div>
       </section>
     </PageTransition>

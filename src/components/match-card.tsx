@@ -80,7 +80,7 @@ export function MatchCard({ match, index = 0 }: MatchCardProps) {
     >
       <Link
         href={`/sports/${match.id}`}
-        className="group relative block overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+        className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
       >
         {/* Live accent bar */}
         {isLive && (

@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
         ) : analytics && analytics.totalWatchTime > 0 ? (
           <div className="mt-8 space-y-6">
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3">
               <StatsCard
                 icon={Clock}
                 label="Watch Time"

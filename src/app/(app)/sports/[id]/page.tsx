@@ -228,16 +228,15 @@ export default function MatchDetailPage({
   return (
     <PageTransition>
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/sports"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Sports
-        </Link>
+        <Button variant="outline" size="sm" asChild className="mb-6">
+          <Link href="/sports">
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Back to Sports
+          </Link>
+        </Button>
 
         {/* Match Hero Header */}
-        <div className="relative overflow-hidden rounded-xl border border-border">
+        <div className="relative overflow-hidden rounded-2xl border border-border">
           <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a12] via-card to-[#120a1a]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,65,108,0.12),transparent_60%)]" />
 
@@ -358,8 +357,28 @@ export default function MatchDetailPage({
           </div>
         </div>
 
+        {/* Match Info Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mt-4 flex flex-wrap items-center justify-center gap-3"
+        >
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            {kickoff.toLocaleDateString("en-ZW", { weekday: "short", month: "short", day: "numeric" })}
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            {kickoff.toLocaleTimeString("en-ZW", { hour: "2-digit", minute: "2-digit", hour12: false })}
+          </div>
+          <div className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+            ${match.price}
+          </div>
+        </motion.div>
+
         {/* Access / Payment */}
-        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <div className="mt-4 rounded-2xl border border-border bg-card p-6">
           {match.phase === "ENDED" && !hasPass ? (
             <div className="text-center py-4">
               <h2 className="text-lg font-semibold">Match Ended</h2>
@@ -535,7 +554,7 @@ export default function MatchDetailPage({
                 <button
                   type="button"
                   onClick={() => setProvider("ECOCASH")}
-                  className={`flex items-center gap-2.5 rounded-lg border p-3.5 text-left text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2.5 rounded-xl border p-3.5 text-left text-sm font-medium transition-all ${
                     provider === "ECOCASH"
                       ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
                       : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
@@ -550,7 +569,7 @@ export default function MatchDetailPage({
                 <button
                   type="button"
                   onClick={() => setProvider("PAYNOW")}
-                  className={`flex items-center gap-2.5 rounded-lg border p-3.5 text-left text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2.5 rounded-xl border p-3.5 text-left text-sm font-medium transition-all ${
                     provider === "PAYNOW"
                       ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
                       : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"

@@ -16,6 +16,13 @@ const INTEREST_OPTIONS = [
   "Entertainment",
   "Music",
   "Documentary",
+  "Gaming",
+  "Travel",
+  "Food",
+  "Tech",
+  "Fashion",
+  "Fitness",
+  "Art",
 ] as const;
 
 const LANGUAGE_OPTIONS = ["English", "Shona", "Ndebele"] as const;

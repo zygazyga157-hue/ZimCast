@@ -43,6 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           emailVerified: user.emailVerified,
+          avatarUrl: user.avatarUrl,
         };
       },
     }),
@@ -53,14 +54,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as { role: string }).role;
         token.emailVerified = (user as { emailVerified: boolean }).emailVerified;
+        token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
       }
-      // Refresh emailVerified on session update trigger
+      // Refresh emailVerified + avatarUrl on session update trigger
       if (trigger === "update" && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { emailVerified: true },
+          select: { emailVerified: true, avatarUrl: true },
         });
-        if (dbUser) token.emailVerified = dbUser.emailVerified;
+        if (dbUser) {
+          token.emailVerified = dbUser.emailVerified;
+          token.avatarUrl = dbUser.avatarUrl;
+        }
       }
       return token;
     },
@@ -69,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         (session.user as { role: string }).role = token.role as string;
         (session.user as { emailVerified: boolean }).emailVerified = token.emailVerified as boolean;
+        (session.user as { avatarUrl?: string | null }).avatarUrl = (token.avatarUrl as string | null) ?? null;
       }
       return session;
     },

@@ -59,7 +59,7 @@ export function UpNext({ program }: UpNextProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="mt-2 rounded-xl border border-border/60 bg-card/60 p-3"
+      className="mt-2 rounded-2xl border border-border/60 bg-card/60 p-3"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">

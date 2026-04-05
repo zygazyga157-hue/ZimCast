@@ -105,7 +105,7 @@ export function StreamControls({ viewers, player }: StreamControlsProps) {
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-2 flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-4 py-2"
+      className="mt-2 flex items-center justify-between rounded-xl border border-border/60 bg-card/60 px-4 py-2"
     >
       {/* Viewer count */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">

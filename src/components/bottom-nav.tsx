@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Home, Tv, Trophy, BarChart3, User } from "lucide-react";
 
 const tabs = [
@@ -16,34 +17,48 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-safe md:hidden">
-      <div className="flex h-16 items-stretch">
-        {tabs.map((tab) => {
+    <nav className="fixed inset-x-4 bottom-3 z-50 rounded-2xl border border-border bg-card/90 shadow-lg shadow-black/30 backdrop-blur-xl pb-safe md:hidden">
+      <div className="flex h-16 items-stretch px-1">
+        {tabs.map((tab, idx) => {
           const isActive =
             tab.href === "/"
               ? pathname === "/"
               : pathname === tab.href ||
                 pathname.startsWith(tab.href + "/");
 
+          const isCenter = idx === Math.floor(tabs.length / 2);
+
           return (
-            <Link
+            <motion.div
               key={tab.href}
-              href={tab.href}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap text-[9px] font-medium leading-none transition-colors ${
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground active:text-foreground"
-              }`}
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className="relative flex flex-1 items-center justify-center"
             >
-              {isActive && (
-                <span className="gradient-accent absolute inset-x-3 top-0 h-0.5 rounded-full" />
-              )}
-              <tab.icon
-                className={`h-5 w-5 ${isActive ? "fill-foreground/20" : ""}`}
-                strokeWidth={isActive ? 2.5 : 2}
-              />
-              {tab.label}
-            </Link>
+              <Link
+                href={tab.href}
+                className={`relative flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[9px] font-medium leading-none transition-colors ${
+                  isCenter && !isActive ? "-translate-y-0.5" : ""
+                } ${
+                  isActive
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="bottom-nav-pill"
+                    className="gradient-accent absolute inset-0 rounded-xl opacity-15"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <tab.icon
+                  className={`relative h-5 w-5 ${isActive ? "fill-foreground/20" : ""}`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                <span className="relative">{tab.label}</span>
+              </Link>
+            </motion.div>
           );
         })}
       </div>

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Clock, Trophy, Newspaper, Music, Film, Tv } from "lucide-react";
+import { Sparkles, Clock, Trophy, Newspaper, Music, Film, Tv, Gamepad2, Plane, UtensilsCrossed, Cpu, Shirt, Dumbbell, Palette } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +30,13 @@ const categoryIcons: Record<string, typeof Trophy> = {
   ENTERTAINMENT: Film,
   MUSIC: Music,
   DOCUMENTARY: Tv,
+  GAMING: Gamepad2,
+  TRAVEL: Plane,
+  FOOD: UtensilsCrossed,
+  TECH: Cpu,
+  FASHION: Shirt,
+  FITNESS: Dumbbell,
+  ART: Palette,
   OTHER: Tv,
 };
 
@@ -39,6 +46,13 @@ const categoryColors: Record<string, string> = {
   ENTERTAINMENT: "bg-pink-500/10 text-pink-400",
   MUSIC: "bg-green-500/10 text-green-400",
   DOCUMENTARY: "bg-purple-500/10 text-purple-400",
+  GAMING: "bg-indigo-500/10 text-indigo-400",
+  TRAVEL: "bg-teal-500/10 text-teal-400",
+  FOOD: "bg-amber-500/10 text-amber-400",
+  TECH: "bg-slate-500/10 text-slate-400",
+  FASHION: "bg-fuchsia-500/10 text-fuchsia-400",
+  FITNESS: "bg-lime-500/10 text-lime-400",
+  ART: "bg-rose-500/10 text-rose-400",
   OTHER: "bg-muted text-muted-foreground",
 };
 
@@ -59,7 +73,7 @@ export function Recommendations({ currentCategory, programs }: RecommendationsPr
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="mt-6 rounded-xl border border-border bg-card p-5"
+      className="mt-6 rounded-2xl border border-border bg-card p-5"
     >
       <div className="mb-4 flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />

@@ -50,7 +50,7 @@ export function generateInsights(data: AnalyticsData): string[] {
   }
 
   // Category they haven't watched
-  const allCategories = ["SPORTS", "NEWS", "ENTERTAINMENT", "MUSIC", "DOCUMENTARY"];
+  const allCategories = ["SPORTS", "NEWS", "ENTERTAINMENT", "MUSIC", "DOCUMENTARY", "GAMING", "TRAVEL", "FOOD", "TECH", "FASHION", "FITNESS", "ART"];
   const unwatched = allCategories.filter(
     (c) => !data.categoryBreakdown[c] || data.categoryBreakdown[c] === 0
   );

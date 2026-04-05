@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Radio, Clock, Trophy, Newspaper, Music, Film, Tv } from "lucide-react";
+import { Radio, Clock, Trophy, Newspaper, Music, Film, Tv, Gamepad2, Plane, UtensilsCrossed, Cpu, Shirt, Dumbbell, Palette } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface NowPlayingProps {
@@ -22,6 +22,13 @@ const categoryConfig: Record<string, { icon: typeof Trophy; color: string; bg: s
   ENTERTAINMENT: { icon: Film, color: "text-pink-400", bg: "bg-pink-500/15" },
   MUSIC: { icon: Music, color: "text-green-400", bg: "bg-green-500/15" },
   DOCUMENTARY: { icon: Tv, color: "text-purple-400", bg: "bg-purple-500/15" },
+  GAMING: { icon: Gamepad2, color: "text-indigo-400", bg: "bg-indigo-500/15" },
+  TRAVEL: { icon: Plane, color: "text-teal-400", bg: "bg-teal-500/15" },
+  FOOD: { icon: UtensilsCrossed, color: "text-amber-400", bg: "bg-amber-500/15" },
+  TECH: { icon: Cpu, color: "text-slate-400", bg: "bg-slate-500/15" },
+  FASHION: { icon: Shirt, color: "text-fuchsia-400", bg: "bg-fuchsia-500/15" },
+  FITNESS: { icon: Dumbbell, color: "text-lime-400", bg: "bg-lime-500/15" },
+  ART: { icon: Palette, color: "text-rose-400", bg: "bg-rose-500/15" },
   OTHER: { icon: Tv, color: "text-muted-foreground", bg: "bg-muted" },
 };
 
@@ -59,7 +66,7 @@ export function NowPlaying({ program }: NowPlayingProps) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-3 rounded-xl border border-border bg-card p-4"
+      className="mt-3 rounded-2xl border border-border bg-card p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">

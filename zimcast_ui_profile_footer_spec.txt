@@ -1,0 +1,116 @@
+ZIMCAST UI REDESIGN SPEC (PROFILE PAGE + FOOTER NAV)
+
+-----------------------------------
+PROFILE PAGE DESIGN (STRUCTURE ONLY)
+-----------------------------------
+
+CORE PRINCIPLE:
+Profile is a dashboard + identity hub, not a form.
+
+STRUCTURE:
+
+1. PROFILE HERO
+- Banner background area
+- Centered avatar (overlapping banner)
+- Name (primary text)
+- Secondary line (email / username + verification)
+- Optional edit icon on avatar
+
+2. QUICK STATS BAR
+- Horizontal row of stats:
+  Followers | Streams | Passes | Watch Time
+- Equal spacing
+- Tappable items
+
+3. ACTIVITY SECTION
+- Title: "Your Activity"
+- Horizontal scroll rows:
+  - Recently Watched
+  - Favorite Categories
+- Compact content cards
+
+4. INTERESTS SECTION
+- Multi-select chips
+- Wrapped layout (not scroll)
+- Tap to toggle
+- Optional edit mode
+
+5. SETTINGS (COLLAPSIBLE ACCORDION)
+
+Sections:
+- Profile Info (Name, Email, Phone)
+- Personalization (Language, Preferences)
+- Location (City, Country)
+
+Behavior:
+- Collapsed by default
+- Expand on tap
+- One open at a time
+
+6. SAVE SYSTEM (IMPORTANT)
+
+Sticky Save Bar:
+- Positioned at bottom
+- Appears only when changes are made
+
+Content:
+"Unsaved changes"   [ Save ]
+
+Behavior:
+- Hidden by default
+- Appears on edit
+- Disappears after save
+- Includes loading + success feedback
+
+-----------------------------------
+FOOTER NAV DESIGN (STRUCTURE ONLY)
+-----------------------------------
+
+CORE IDEA:
+Floating control panel, not a static bar.
+
+1. CONTAINER
+- Floating at bottom
+- Not full width (inset from edges)
+- Rounded rectangle shape
+- Slightly elevated from bottom
+
+2. NAV ITEMS
+
+Each tab includes:
+- Icon (top)
+- Label (bottom)
+
+Tabs:
+Home | Live | Discover | Analytics | Profile
+
+3. ACTIVE TAB DESIGN
+
+- Slightly raised position
+- Capsule/pill background behind icon
+- Slightly larger than inactive tabs
+
+4. INTERACTIONS
+
+On tap:
+- Scale down slightly
+- Spring back animation
+
+On tab switch:
+- Active indicator slides smoothly
+- No abrupt jumps
+
+5. SPACING
+
+- Equal spacing between tabs
+- Generous padding inside container
+- Tight icon-label spacing
+
+6. OPTIONAL ENHANCEMENT
+
+- Center tab (Live) slightly emphasized
+- Slight vertical lift or size increase
+
+-----------------------------------
+END OF SPEC
+-----------------------------------
