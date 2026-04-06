@@ -8,6 +8,9 @@ import {
   Trophy,
   Clock,
   Loader2,
+  Tv,
+  ShieldAlert,
+  Repeat,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api, showApiError } from "@/lib/api";
@@ -19,6 +22,11 @@ interface Stats {
   totalMatches: number;
   pendingPayments: number;
   totalRevenue: string;
+  totalPrograms: number;
+  todayPrograms: number;
+  blackoutPrograms: number;
+  activeTemplates: number;
+  categoryBreakdown: { category: string; count: number }[];
   recentPayments: {
     id: string;
     amount: string;
@@ -83,6 +91,24 @@ export default function AdminOverviewPage() {
       icon: Trophy,
       color: "text-primary",
     },
+    {
+      label: "Programs Today",
+      value: `${stats.todayPrograms} / ${stats.totalPrograms}`,
+      icon: Tv,
+      color: "text-cyan-400",
+    },
+    {
+      label: "Active Blackouts",
+      value: stats.blackoutPrograms,
+      icon: ShieldAlert,
+      color: "text-amber-400",
+    },
+    {
+      label: "Active Templates",
+      value: stats.activeTemplates,
+      icon: Repeat,
+      color: "text-emerald-400",
+    },
   ];
 
   return (
@@ -107,6 +133,25 @@ export default function AdminOverviewPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Program Category Breakdown */}
+      {stats.categoryBreakdown.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">Programs by Category</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-3 lg:grid-cols-4">
+            {stats.categoryBreakdown
+              .sort((a, b) => b.count - a.count)
+              .map((cat) => (
+                <div key={cat.category} className="flex items-center justify-between bg-card px-5 py-3">
+                  <span className="text-sm text-muted-foreground">{cat.category}</span>
+                  <span className="text-sm font-semibold">{cat.count}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Pending Payments Alert */}
       {stats.pendingPayments > 0 && (

@@ -151,6 +151,25 @@ model Program {
   @@map("programs")
 }
 
+model ProgramTemplate {
+  id          String          @id @default(cuid())
+  name        String
+  channel     String          @default("ZBCTV")
+  title       String
+  description String?
+  category    ProgramCategory @default(ENTERTAINMENT)
+  blackout    Boolean         @default(false)
+  startHour   Int             // 0-23
+  startMinute Int             @default(0)
+  durationMin Int             // duration in minutes
+  daysOfWeek  Int[]           // 0=Sun, 1=Mon, ... 6=Sat
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("program_templates")
+}
+
 model ViewingActivity {
   id            String      @id @default(cuid())
   userId        String

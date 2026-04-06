@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
+import { createProgramSafe, invalidateProgramCache, OverlapError, validateProgramInput } from "@/lib/program";
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,56 +44,38 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { channel, title, description, category, startTime, endTime, matchId, blackout } = body;
 
-    if (!title || !startTime || !endTime) {
-      return NextResponse.json(
-        { error: "title, startTime, and endTime are required" },
-        { status: 400 }
-      );
+    const input = {
+      channel: channel || "ZBCTV",
+      title,
+      description: description || null,
+      category: category || "ENTERTAINMENT",
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      matchId: matchId || null,
+      blackout: blackout ?? false,
+    };
+
+    const validationError = validateProgramInput(input);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+    try {
+      const { programId } = await createProgramSafe(input);
 
-    if (end <= start) {
-      return NextResponse.json(
-        { error: "endTime must be after startTime" },
-        { status: 400 }
-      );
+      const program = await prisma.program.findUnique({
+        where: { id: programId },
+        include: { match: { select: { id: true, homeTeam: true, awayTeam: true } } },
+      });
+
+      await invalidateProgramCache();
+      return NextResponse.json(program, { status: 201 });
+    } catch (error) {
+      if (error instanceof OverlapError) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
+      throw error;
     }
-
-    // Check for time overlap on the same channel
-    const ch = channel || "ZBCTV";
-    const overlap = await prisma.program.findFirst({
-      where: {
-        channel: ch,
-        OR: [
-          { startTime: { lt: end }, endTime: { gt: start } },
-        ],
-      },
-    });
-
-    if (overlap) {
-      return NextResponse.json(
-        { error: `Time conflict with "${overlap.title}" (${overlap.startTime.toISOString()} - ${overlap.endTime.toISOString()})` },
-        { status: 409 }
-      );
-    }
-
-    const program = await prisma.program.create({
-      data: {
-        channel: ch,
-        title,
-        description: description || null,
-        category: category || "ENTERTAINMENT",
-        blackout: blackout ?? false,
-        startTime: start,
-        endTime: end,
-        matchId: matchId || null,
-      },
-      include: { match: { select: { id: true, homeTeam: true, awayTeam: true } } },
-    });
-
-    return NextResponse.json(program, { status: 201 });
   } catch (error) {
     return handleApiError(error, "Admin program create error");
   }

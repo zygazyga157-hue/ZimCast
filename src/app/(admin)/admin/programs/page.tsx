@@ -10,6 +10,11 @@ import {
   Trash2,
   X,
   ShieldAlert,
+  Upload,
+  Download,
+  FileText,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +80,12 @@ export default function AdminProgramsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    errors: { row: number; message: string }[];
+  } | null>(null);
 
   const loadPrograms = useCallback(async () => {
     try {
@@ -154,6 +165,49 @@ export default function AdminProgramsPage() {
     }
   }
 
+  function openImport() {
+    setImportResult(null);
+    setShowImport(true);
+  }
+
+  async function handleImportFile(file: File) {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/programs/import", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok && !data.created && data.error) {
+        toast.error(data.error);
+        return;
+      }
+      setImportResult(data);
+      if (data.created > 0) {
+        toast.success(`Imported ${data.created} program(s)`);
+        await loadPrograms();
+      }
+    } catch {
+      toast.error("Import failed");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function downloadTemplate() {
+    const template = `title,category,startTime,endTime,description,channel,blackout\nMorning News,NEWS,2025-01-15T06:00,2025-01-15T08:00,Daily morning bulletin,ZBCTV,false\nPremier League: Chiefs vs Dynamos,SPORTS,2025-01-15T15:00,2025-01-15T17:30,Live football,ZBCTV,true\nEvening Movie,ENTERTAINMENT,2025-01-15T20:00,2025-01-15T22:00,Feature film,ZBCTV,false`;
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "programs_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function deleteProgram(id: string) {
     if (!confirm("Delete this program?")) return;
     try {
@@ -188,15 +242,118 @@ export default function AdminProgramsPage() {
             className="h-8 w-auto text-xs"
           />
         </div>
-        <Button
-          size="sm"
-          className="gradient-accent border-0 text-white"
-          onClick={openCreate}
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          Add Program
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={openImport}
+          >
+            <Upload className="mr-1 h-4 w-4" />
+            Import
+          </Button>
+          <Button
+            size="sm"
+            className="gradient-accent border-0 text-white"
+            onClick={openCreate}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add Program
+          </Button>
+        </div>
       </div>
+
+      {/* Import Panel */}
+      {showImport && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Import Programs
+            </h3>
+            <Button variant="ghost" size="icon" onClick={() => setShowImport(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".csv,.xml,.xmltv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImportFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {importing ? "Importing…" : "Choose File"}
+                </span>
+              </label>
+              <Button variant="ghost" size="sm" onClick={downloadTemplate}>
+                <Download className="mr-1 h-4 w-4" />
+                Download CSV Template
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Supported formats: <strong>CSV</strong> (comma-separated) and <strong>XMLTV</strong> (.xml / .xmltv).
+              CSV must have columns: title, startTime, endTime. Optional: category, description, channel, blackout.
+            </p>
+
+            {importResult && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  {importResult.created > 0 && (
+                    <span className="flex items-center gap-1 text-green-400">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {importResult.created} created
+                    </span>
+                  )}
+                  {importResult.errors.length > 0 && (
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <AlertTriangle className="h-4 w-4" />
+                      {importResult.errors.length} error(s)
+                    </span>
+                  )}
+                </div>
+
+                {importResult.errors.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-background p-3">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th className="pb-1.5 pr-3 font-medium">Row</th>
+                          <th className="pb-1.5 font-medium">Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.errors.map((err, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="py-1 pr-3 text-muted-foreground">{err.row}</td>
+                            <td className="py-1 text-amber-400">{err.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Form Panel */}
       {showForm && (
@@ -271,7 +428,7 @@ export default function AdminProgramsPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="startTime">Start Time</Label>
+              <Label htmlFor="startTime">Start Time <span className="text-xs text-muted-foreground">(CAT / UTC+2)</span></Label>
               <Input
                 id="startTime"
                 type="datetime-local"
@@ -283,7 +440,7 @@ export default function AdminProgramsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="endTime">End Time</Label>
+              <Label htmlFor="endTime">End Time <span className="text-xs text-muted-foreground">(CAT / UTC+2)</span></Label>
               <Input
                 id="endTime"
                 type="datetime-local"

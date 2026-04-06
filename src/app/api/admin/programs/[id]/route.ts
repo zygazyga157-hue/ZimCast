@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
+import { invalidateProgramCache } from "@/lib/program";
 
 export async function PATCH(
   req: NextRequest,
@@ -34,6 +35,7 @@ export async function PATCH(
       include: { match: { select: { id: true, homeTeam: true, awayTeam: true } } },
     });
 
+    await invalidateProgramCache();
     return NextResponse.json(program);
   } catch (error) {
     return handleApiError(error, "Admin program update error");
@@ -53,6 +55,7 @@ export async function DELETE(
     const { id } = await params;
     await prisma.program.delete({ where: { id } });
 
+    await invalidateProgramCache();
     return NextResponse.json({ message: "Program deleted" });
   } catch (error) {
     return handleApiError(error, "Admin program delete error");

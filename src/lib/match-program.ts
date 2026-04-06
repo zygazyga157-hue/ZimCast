@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { createProgramSafe, OverlapError, invalidateProgramCache } from "@/lib/program";
 
 const PREGAME_BUFFER_MS = 15 * 60 * 1000;
 const COVERAGE_DURATION_MS = 210 * 60 * 1000; // 15m pregame + 150m match + 60m postgame
@@ -23,25 +24,8 @@ export async function createMatchProgram(
   const startTime = new Date(kickoff.getTime() - PREGAME_BUFFER_MS);
   const endTime = new Date(kickoff.getTime() + COVERAGE_DURATION_MS - PREGAME_BUFFER_MS);
 
-  // Check for channel overlap
-  const overlap = await prisma.program.findFirst({
-    where: {
-      channel,
-      startTime: { lt: endTime },
-      endTime: { gt: startTime },
-    },
-    select: { id: true, title: true, startTime: true, endTime: true },
-  });
-
-  if (overlap) {
-    return {
-      programId: null,
-      warning: `Program overlap with "${overlap.title}" (${overlap.startTime.toISOString()} – ${overlap.endTime.toISOString()}). Create the SPORTS program manually.`,
-    };
-  }
-
-  const program = await prisma.program.create({
-    data: {
+  try {
+    const { programId } = await createProgramSafe({
       channel,
       title: `${homeTeam} vs ${awayTeam}`,
       category: "SPORTS",
@@ -49,10 +33,19 @@ export async function createMatchProgram(
       startTime,
       endTime,
       matchId,
-    },
-  });
+    });
 
-  return { programId: program.id, warning: null };
+    await invalidateProgramCache();
+    return { programId, warning: null };
+  } catch (error) {
+    if (error instanceof OverlapError) {
+      return {
+        programId: null,
+        warning: `${error.message}. Create the SPORTS program manually.`,
+      };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -76,34 +69,43 @@ export async function updateMatchProgram(
   });
 
   if (existing) {
-    // Check for overlap (excluding this program)
-    const overlap = await prisma.program.findFirst({
-      where: {
-        channel,
-        id: { not: existing.id },
-        startTime: { lt: endTime },
-        endTime: { gt: startTime },
-      },
-      select: { id: true, title: true, startTime: true, endTime: true },
-    });
+    // Use a serializable transaction for overlap check + update
+    try {
+      await prisma.$transaction(async (tx) => {
+        const overlaps = await tx.$queryRawUnsafe<{ id: string; title: string }[]>(
+          `SELECT id, title FROM programs
+           WHERE channel = $1 AND id != $2 AND start_time < $3 AND end_time > $4
+           FOR UPDATE`,
+          channel, existing.id, endTime, startTime,
+        );
 
-    if (overlap) {
-      return {
-        programId: existing.id,
-        warning: `Could not update program times — overlap with "${overlap.title}". Update the SPORTS program manually.`,
-      };
+        if (overlaps.length > 0) {
+          throw new OverlapError(
+            `Could not update program times — overlap with "${overlaps[0].title}"`,
+          );
+        }
+
+        await tx.program.update({
+          where: { id: existing.id },
+          data: {
+            title: `${homeTeam} vs ${awayTeam}`,
+            startTime,
+            endTime,
+          },
+        });
+      }, { isolationLevel: "Serializable" });
+
+      await invalidateProgramCache();
+      return { programId: existing.id, warning: null };
+    } catch (error) {
+      if (error instanceof OverlapError) {
+        return {
+          programId: existing.id,
+          warning: `${error.message}. Update the SPORTS program manually.`,
+        };
+      }
+      throw error;
     }
-
-    await prisma.program.update({
-      where: { id: existing.id },
-      data: {
-        title: `${homeTeam} vs ${awayTeam}`,
-        startTime,
-        endTime,
-      },
-    });
-
-    return { programId: existing.id, warning: null };
   }
 
   // No existing program — create one

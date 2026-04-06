@@ -13,6 +13,8 @@ export async function GET() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    const now = new Date();
+
     const [
       totalUsers,
       activeUsers,
@@ -21,6 +23,11 @@ export async function GET() {
       pendingPayments,
       revenueResult,
       recentPayments,
+      totalPrograms,
+      todayPrograms,
+      blackoutPrograms,
+      categoryBreakdown,
+      activeTemplates,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({
@@ -41,6 +48,19 @@ export async function GET() {
           match: { select: { homeTeam: true, awayTeam: true } },
         },
       }),
+      prisma.program.count(),
+      prisma.program.count({
+        where: {
+          startTime: { gte: new Date(now.toISOString().slice(0, 10) + "T00:00:00Z") },
+          endTime: { lte: new Date(now.toISOString().slice(0, 10) + "T23:59:59Z") },
+        },
+      }),
+      prisma.program.count({ where: { blackout: true, endTime: { gte: now } } }),
+      prisma.program.groupBy({
+        by: ["category"],
+        _count: { id: true },
+      }),
+      prisma.programTemplate.count({ where: { isActive: true } }),
     ]);
 
     return NextResponse.json({
@@ -50,6 +70,14 @@ export async function GET() {
       totalMatches,
       pendingPayments,
       totalRevenue: revenueResult._sum.amount?.toString() ?? "0",
+      totalPrograms,
+      todayPrograms,
+      blackoutPrograms,
+      activeTemplates,
+      categoryBreakdown: categoryBreakdown.map((c) => ({
+        category: c.category,
+        count: c._count.id,
+      })),
       recentPayments: recentPayments.map((p) => ({
         id: p.id,
         amount: p.amount.toString(),
