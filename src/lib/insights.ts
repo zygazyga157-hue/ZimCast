@@ -12,8 +12,7 @@ export function generateInsights(data: AnalyticsData): string[] {
 
   if (data.totalWatchTime === 0) return insights;
 
-  // Favorite category (skip OTHER — it's noise, not a real genre)
-  if (data.favoriteCategory && data.favoriteCategory !== "OTHER") {
+  if (data.favoriteCategory) {
     const totalMinutes = Object.values(data.categoryBreakdown).reduce((a, b) => a + b, 0);
     const favMinutes = data.categoryBreakdown[data.favoriteCategory] ?? 0;
     const pct = totalMinutes > 0 ? Math.round((favMinutes / totalMinutes) * 100) : 0;

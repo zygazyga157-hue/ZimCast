@@ -28,7 +28,13 @@ enum ProgramCategory {
   ENTERTAINMENT
   MUSIC
   DOCUMENTARY
-  OTHER
+  GAMING
+  TRAVEL
+  FOOD
+  TECH
+  FASHION
+  FITNESS
+  ART
 }
 
 enum ViewAction {
@@ -128,7 +134,7 @@ model Program {
   channel     String          @default("ZBCTV")
   title       String
   description String?
-  category    ProgramCategory @default(OTHER)
+  category    ProgramCategory @default(ENTERTAINMENT)
   startTime   DateTime
   endTime     DateTime
   isLive      Boolean         @default(false)

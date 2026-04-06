@@ -42,14 +42,20 @@ const categories = [
   "ENTERTAINMENT",
   "MUSIC",
   "DOCUMENTARY",
-  "OTHER",
+  "GAMING",
+  "TRAVEL",
+  "FOOD",
+  "TECH",
+  "FASHION",
+  "FITNESS",
+  "ART",
 ];
 
 const emptyForm = {
   channel: "ZBCTV",
   title: "",
   description: "",
-  category: "OTHER",
+  category: "ENTERTAINMENT",
   startTime: "",
   endTime: "",
   matchId: "",

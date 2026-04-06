@@ -16,7 +16,13 @@ function prettyCategory(category: string): string {
   if (upper === "ENTERTAINMENT") return "Entertainment";
   if (upper === "MUSIC") return "Music";
   if (upper === "DOCUMENTARY") return "Documentary";
-  if (upper === "OTHER") return "Other";
+  if (upper === "GAMING") return "Gaming";
+  if (upper === "TRAVEL") return "Travel";
+  if (upper === "FOOD") return "Food";
+  if (upper === "TECH") return "Tech";
+  if (upper === "FASHION") return "Fashion";
+  if (upper === "FITNESS") return "Fitness";
+  if (upper === "ART") return "Art";
   return upper.slice(0, 1) + upper.slice(1).toLowerCase();
 }
 

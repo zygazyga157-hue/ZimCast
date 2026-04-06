@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         channel: ch,
         title,
         description: description || null,
-        category: category || "OTHER",
+        category: category || "ENTERTAINMENT",
         startTime: start,
         endTime: end,
         matchId: matchId || null,

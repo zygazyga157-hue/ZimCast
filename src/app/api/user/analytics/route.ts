@@ -37,11 +37,9 @@ export async function GET() {
       categoryBreakdown[cat] = (categoryBreakdown[cat] ?? 0) + a.watchDuration;
     }
 
-    // Favorite category (skip OTHER — not a meaningful genre)
     let favoriteCategory: string | null = null;
     let maxCatTime = 0;
     for (const [cat, time] of Object.entries(categoryBreakdown)) {
-      if (cat === "OTHER") continue;
       if (time > maxCatTime) {
         maxCatTime = time;
         favoriteCategory = cat;

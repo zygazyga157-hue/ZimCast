@@ -48,3 +48,6 @@ mediamtx/mediamtx
 # Recordings
 recordings/
 next-env.d.ts
+
+# Docs
+Docs/
