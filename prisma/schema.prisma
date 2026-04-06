@@ -138,6 +138,7 @@ model Program {
   startTime   DateTime
   endTime     DateTime
   isLive      Boolean         @default(false)
+  blackout    Boolean         @default(false)
   matchId     String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

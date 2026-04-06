@@ -58,11 +58,11 @@ export async function GET() {
       },
     } as const;
 
-    // Sports blackout: if a SPORTS program is airing, ZTV stream should be blocked.
+    // Blackout: if a program with blackout flag is airing, ZTV stream should be blocked.
     const sportsProgram = await prisma.program.findFirst({
       where: {
         channel: CHANNEL,
-        category: "SPORTS",
+        blackout: true,
         startTime: { lte: now },
         endTime: { gt: now },
       },
@@ -91,7 +91,7 @@ export async function GET() {
         where: {
           channel: CHANNEL,
           startTime: { gte: sportsProgram.endTime },
-          category: { not: "SPORTS" },
+          blackout: { not: true },
         },
         include,
         orderBy: { startTime: "asc" },

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { channel, title, description, category, startTime, endTime, matchId } = body;
+    const { channel, title, description, category, startTime, endTime, matchId, blackout } = body;
 
     if (!title || !startTime || !endTime) {
       return NextResponse.json(
@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
         title,
         description: description || null,
         category: category || "ENTERTAINMENT",
+        blackout: blackout ?? false,
         startTime: start,
         endTime: end,
         matchId: matchId || null,

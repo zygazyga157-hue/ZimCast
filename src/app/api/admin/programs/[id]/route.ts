@@ -15,7 +15,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const allowedFields = ["channel", "title", "description", "category", "startTime", "endTime", "isLive", "matchId"];
+    const allowedFields = ["channel", "title", "description", "category", "startTime", "endTime", "isLive", "blackout", "matchId"];
     const data: Record<string, unknown> = {};
 
     for (const field of allowedFields) {

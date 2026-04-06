@@ -6,10 +6,10 @@ export async function GET() {
   try {
     const now = new Date();
 
-    // Check if there's a SPORTS program currently airing
+    // Check if there's a program with blackout active
     const sportsProgram = await prisma.program.findFirst({
       where: {
-        category: "SPORTS",
+        blackout: true,
         startTime: { lte: now },
         endTime: { gt: now },
       },
@@ -28,11 +28,11 @@ export async function GET() {
     });
 
     if (sportsProgram) {
-      // Find next non-sports program to determine when Live TV resumes
+      // Find next non-blackout program to determine when Live TV resumes
       const nextNonSports = await prisma.program.findFirst({
         where: {
           startTime: { gte: sportsProgram.endTime },
-          category: { not: "SPORTS" },
+          blackout: { not: true },
         },
         orderBy: { startTime: "asc" },
       });

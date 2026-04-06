@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   X,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface Program {
   startTime: string;
   endTime: string;
   isLive: boolean;
+  blackout: boolean;
   matchId: string | null;
   match?: { id: string; homeTeam: string; awayTeam: string } | null;
 }
@@ -59,6 +61,7 @@ const emptyForm = {
   startTime: "",
   endTime: "",
   matchId: "",
+  blackout: false,
 };
 
 export default function AdminProgramsPage() {
@@ -111,6 +114,7 @@ export default function AdminProgramsPage() {
       startTime: p.startTime.slice(0, 16),
       endTime: p.endTime.slice(0, 16),
       matchId: p.matchId ?? "",
+      blackout: p.blackout,
     });
     setEditingId(p.id);
     setShowForm(true);
@@ -301,6 +305,22 @@ export default function AdminProgramsPage() {
               />
             </div>
             <div className="sm:col-span-2">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.blackout}
+                  onChange={(e) =>
+                    setForm({ ...form, blackout: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <div>
+                  <span className="text-sm font-medium">Blackout ZTV</span>
+                  <p className="text-xs text-muted-foreground">Block the free-to-air ZTV stream while this program is on air</p>
+                </div>
+              </label>
+            </div>
+            <div className="sm:col-span-2">
               <Button
                 type="submit"
                 disabled={submitting}
@@ -329,6 +349,7 @@ export default function AdminProgramsPage() {
                 <th className="px-5 py-2.5 font-medium">Time</th>
                 <th className="px-5 py-2.5 font-medium">Title</th>
                 <th className="px-5 py-2.5 font-medium">Category</th>
+                <th className="px-5 py-2.5 font-medium">Blackout</th>
                 <th className="px-5 py-2.5 font-medium">Channel</th>
                 <th className="px-5 py-2.5 font-medium">Match</th>
                 <th className="px-5 py-2.5 font-medium text-right">
@@ -370,6 +391,16 @@ export default function AdminProgramsPage() {
                       <Badge variant="outline" className="text-[10px]">
                         {p.category}
                       </Badge>
+                    </td>
+                    <td className="px-5 py-3">
+                      {p.blackout ? (
+                        <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400">
+                          <ShieldAlert className="mr-1 h-3 w-3" />
+                          ON
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-muted-foreground">
                       {p.channel}

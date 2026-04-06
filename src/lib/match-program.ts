@@ -45,6 +45,7 @@ export async function createMatchProgram(
       channel,
       title: `${homeTeam} vs ${awayTeam}`,
       category: "SPORTS",
+      blackout: true,
       startTime,
       endTime,
       matchId,
