@@ -20,6 +20,7 @@ import { MatchFilters, type MatchFilter } from "@/components/match-filters";
 import { EmptyMatches } from "@/components/empty-matches";
 import type { MatchPhase } from "@/lib/match-window";
 import { api, showApiError } from "@/lib/api";
+import { useZimcastSocket } from "@/hooks/use-zimcast-socket";
 
 interface ZplsScore {
   score: string;
@@ -131,6 +132,11 @@ export default function SportsPage() {
     loadData();
     loadZpls();
   }, [loadData, loadZpls]);
+
+  // Real-time match updates via WebSocket
+  useZimcastSocket("match:update", () => {
+    loadData();
+  });
 
   const liveMatches = useMemo(
     () => matches.filter((m) => m.phase === "LIVE" || m.phase === "PREGAME" || m.phase === "POSTGAME"),

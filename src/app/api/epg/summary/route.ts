@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
+import { redisPub } from "@/lib/redis-pubsub";
 
 const CHANNEL = "ZBCTV";
 const CACHE_KEY = `epg:summary:${CHANNEL}`;
@@ -132,6 +133,7 @@ export async function GET() {
 
     try {
       await redis.set(CACHE_KEY, JSON.stringify(response), "EX", CACHE_TTL_SECONDS);
+      redisPub.publish("zimcast:epg", JSON.stringify({ type: "epg:update", data: response }));
     } catch {
       // Ignore cache write failures.
     }

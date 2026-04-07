@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { useZimcastSocket } from "@/hooks/use-zimcast-socket";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -80,16 +81,20 @@ export function Navbar() {
     const initial = setTimeout(() => {
       void fetchSummary();
     }, 0);
-    const interval = setInterval(() => {
-      void fetchSummary();
-    }, 30_000);
 
     return () => {
       cancelled = true;
       clearTimeout(initial);
-      clearInterval(interval);
     };
   }, []);
+
+  // Real-time EPG updates via WebSocket
+  useZimcastSocket("epg:update", (data) => {
+    if (data && typeof data === "object") {
+      setEpg(data as EpgSummary);
+      setEpgLoaded(true);
+    }
+  });
 
   useEffect(() => {
     if (!session?.user?.id) return;

@@ -29,6 +29,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=deps /prod_node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/server.ts ./
+COPY --from=builder /app/src/lib ./src/lib
 
 USER nextjs
 
@@ -36,4 +38,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["npx", "tsx", "server.ts"]

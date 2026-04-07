@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
 import { createProgramSafe, invalidateProgramCache, OverlapError, validateProgramInput } from "@/lib/program";
+import { redisPub } from "@/lib/redis-pubsub";
 
 export async function GET(req: NextRequest) {
   try {
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
       });
 
       await invalidateProgramCache();
+      try { redisPub.publish("zimcast:epg", JSON.stringify({ type: "epg:update" })); } catch {}
       return NextResponse.json(program, { status: 201 });
     } catch (error) {
       if (error instanceof OverlapError) {
