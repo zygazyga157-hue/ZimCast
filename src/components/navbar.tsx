@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   LogOut,
@@ -59,6 +59,7 @@ export function Navbar() {
   const [epg, setEpg] = useState<EpgSummary | null>(null);
   const [epgLoaded, setEpgLoaded] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
+  const [tickerIdx, setTickerIdx] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,15 +121,6 @@ export function Navbar() {
     };
   }, [session?.user?.id]);
 
-  const smartTitle =
-    pathname === "/"
-      ? "Recommended for You"
-      : pathname === "/live-tv" || pathname.startsWith("/live-tv/")
-        ? "Live Now"
-        : pathname === "/analytics" || pathname.startsWith("/analytics/")
-          ? "Your Insights"
-          : "ZimCast";
-
   const currentTitle = epg?.currentProgram
     ? epg.currentProgram.match
       ? `${epg.currentProgram.match.homeTeam} vs ${epg.currentProgram.match.awayTeam}`
@@ -148,6 +140,29 @@ export function Navbar() {
         hour12: false,
       })
     : null;
+
+  // Build the list of items cycled on the mobile ticker
+  const tickerItems = [
+    currentTitle
+      ? `${epg?.channelLabel ?? "ZTV"} — ${currentTitle}`
+      : null,
+    nextTitle ? `Up Next · ${nextTitle}` : null,
+    !epg?.ztvAvailable && resumesTime ? `Resumes at ${resumesTime}` : null,
+    session?.user?.id && insight ? insight : null,
+  ].filter(Boolean) as string[];
+
+  useEffect(() => {
+    if (tickerItems.length <= 1) {
+      setTickerIdx(0);
+      return;
+    }
+    const t = setInterval(
+      () => setTickerIdx((i) => (i + 1) % tickerItems.length),
+      4500,
+    );
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickerItems.length]);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -260,15 +275,16 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Smart context bar — Live EPG + personal insight */}
+      {/* Context bar — Live EPG info */}
       {epgLoaded && (
         <div className="border-t border-border bg-background/60 px-4 py-2">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
+              {/* Status badge */}
               {epg?.ztvAvailable ? (
                 <Badge
                   variant="outline"
-                  className="border-red-500/30 bg-red-500/10 text-red-400"
+                  className="shrink-0 border-red-500/30 bg-red-500/10 text-red-400"
                 >
                   <Radio className="h-3 w-3 animate-pulse" />
                   LIVE NOW
@@ -276,45 +292,59 @@ export function Navbar() {
               ) : (
                 <Badge
                   variant="outline"
-                  className="border-amber-500/30 bg-amber-500/10 text-amber-400"
+                  className="shrink-0 border-amber-500/30 bg-amber-500/10 text-amber-400"
                 >
                   BLACKOUT
                 </Badge>
               )}
 
-              {currentTitle ? (
-                <p className="min-w-0 truncate text-sm">
-                  <span className="font-semibold">
-                    {epg?.channelLabel ?? "ZTV"}
+              {/* Mobile: cycling ticker — one item at a time, fades */}
+              {tickerItems.length > 0 && (
+                <div className="relative min-w-0 overflow-hidden md:hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={tickerIdx}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.25 }}
+                      className="truncate text-sm"
+                    >
+                      {tickerItems[tickerIdx]}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Desktop (md+): static inline layout */}
+              <div className="hidden min-w-0 items-center gap-2.5 md:flex">
+                {currentTitle ? (
+                  <p className="min-w-0 truncate text-sm">
+                    <span className="font-semibold">
+                      {epg?.channelLabel ?? "ZTV"}
+                    </span>
+                    <span className="text-muted-foreground"> — </span>
+                    <span className="font-medium">{currentTitle}</span>
+                  </p>
+                ) : resumesTime ? (
+                  <p className="text-sm text-amber-400">Resumes at {resumesTime}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Off air</p>
+                )}
+                {nextTitle && (
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
+                    Next · {nextTitle}
                   </span>
-                  <span className="text-muted-foreground"> — </span>
-                  <span className="font-medium">{currentTitle}</span>
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No programs scheduled
-                </p>
-              )}
-
-              {nextTitle && (
-                <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">
-                  Next: {nextTitle}
-                </span>
-              )}
-
-              {!epg?.ztvAvailable && resumesTime && (
-                <span className="hidden text-xs text-amber-400 sm:inline">
-                  Resumes {resumesTime}
-                </span>
-              )}
+                )}
+              </div>
             </div>
 
-            <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-              <span className="hidden lg:inline">{smartTitle}</span>
-              {session?.user?.id && insight && (
+            {/* Personal insight — large screens only */}
+            {session?.user?.id && insight && (
+              <div className="hidden items-center text-xs text-muted-foreground lg:flex">
                 <span className="max-w-[340px] truncate">{insight}</span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
+import { ProgramCategory } from "@prisma/client";
 
 const VALID_CATEGORIES = new Set([
   "NEWS", "SPORTS", "ENTERTAINMENT", "MUSIC", "DOCUMENTARY",
@@ -52,24 +53,24 @@ export async function createProgramSafe(
   excludeId?: string,
 ): Promise<ProgramCreateResult> {
   const ch = input.channel || "ZBCTV";
-  const category = (input.category?.toUpperCase() || "ENTERTAINMENT") as string;
+  const category = (input.category?.toUpperCase() || "ENTERTAINMENT") as ProgramCategory;
 
   return prisma.$transaction(async (tx) => {
-    // FOR UPDATE locks any overlapping rows, blocking concurrent inserts until this tx commits
-    const overlaps = await tx.$queryRawUnsafe<{ id: string; title: string; start_time: Date; end_time: Date }[]>(
-      `SELECT id, title, start_time, end_time FROM programs
-       WHERE channel = $1
-         AND start_time < $2
-         AND end_time > $3
-         ${excludeId ? `AND id != $4` : ""}
-       FOR UPDATE`,
-      ...[ch, input.endTime, input.startTime, ...(excludeId ? [excludeId] : [])],
-    );
+    // Serializable isolation detects concurrent overlap conflicts automatically.
+    // An explicit findFirst here surfaces the conflict with a friendly error message.
+    const overlap = await tx.program.findFirst({
+      where: {
+        channel: ch,
+        startTime: { lt: input.endTime },
+        endTime: { gt: input.startTime },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true, title: true, startTime: true, endTime: true },
+    });
 
-    if (overlaps.length > 0) {
-      const o = overlaps[0];
+    if (overlap) {
       throw new OverlapError(
-        `Time conflict with "${o.title}" (${o.start_time.toISOString()} – ${o.end_time.toISOString()})`,
+        `Time conflict with "${overlap.title}" (${overlap.startTime.toISOString()} – ${overlap.endTime.toISOString()})`,
       );
     }
 
@@ -130,19 +131,21 @@ export async function createProgramsBulk(inputs: ProgramInput[]): Promise<BulkCr
       for (let i = 0; i < inputs.length; i++) {
         const input = inputs[i];
         const ch = input.channel || "ZBCTV";
-        const category = (input.category?.toUpperCase() || "ENTERTAINMENT") as string;
+        const category = (input.category?.toUpperCase() || "ENTERTAINMENT") as ProgramCategory;
 
-        // Check DB overlap with lock
-        const overlaps = await tx.$queryRawUnsafe<{ id: string; title: string }[]>(
-          `SELECT id, title FROM programs
-           WHERE channel = $1 AND start_time < $2 AND end_time > $3
-           FOR UPDATE`,
-          ch, input.endTime, input.startTime,
-        );
+        // Check DB overlap — serializable isolation throws on concurrent conflict
+        const overlap = await tx.program.findFirst({
+          where: {
+            channel: ch,
+            startTime: { lt: input.endTime },
+            endTime: { gt: input.startTime },
+          },
+          select: { id: true, title: true },
+        });
 
-        if (overlaps.length > 0) {
+        if (overlap) {
           throw new OverlapError(
-            `Row ${i + 1}: time conflict with existing "${overlaps[0].title}"`,
+            `Row ${i + 1}: time conflict with existing "${overlap.title}"`,
           );
         }
 
