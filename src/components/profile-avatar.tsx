@@ -1,8 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateAvatar, type AvatarInput } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
 interface ProfileAvatarProps {
@@ -22,6 +20,33 @@ interface ProfileAvatarProps {
   animated?: boolean;
 }
 
+function getInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const initials = parts
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("");
+    if (initials) return initials;
+  }
+  return (email?.[0] ?? "U").toUpperCase();
+}
+
+const INTEREST_VIBE: Record<string, string> = {
+  Sports: "avatar-vibe-energetic",
+  News: "avatar-vibe-steady",
+  Entertainment: "avatar-vibe-playful",
+  Music: "avatar-vibe-rhythmic",
+  Documentary: "avatar-vibe-steady",
+  Gaming: "avatar-vibe-energetic",
+  Travel: "avatar-vibe-playful",
+  Food: "avatar-vibe-warm",
+  Tech: "avatar-vibe-precise",
+  Fashion: "avatar-vibe-playful",
+  Fitness: "avatar-vibe-energetic",
+  Art: "avatar-vibe-rhythmic",
+};
+
 export function ProfileAvatar({
   avatarUrl,
   name,
@@ -31,27 +56,23 @@ export function ProfileAvatar({
   className,
   animated = false,
 }: ProfileAvatarProps) {
-  const generated = useMemo(
-    () => generateAvatar({ name, email, interests }),
-    [name, email, interests]
-  );
-
-  // Determine the image source: stored URL first, then generated data URL
-  const src = avatarUrl || generated.dataUrl;
+  const initials = getInitials(name, email);
+  const vibe =
+    (interests ?? []).map((i) => INTEREST_VIBE[i]).find(Boolean) ??
+    "avatar-vibe-steady";
 
   return (
     <div
       className={cn(
         "relative inline-flex",
         animated && "avatar-ring-glow",
-        animated && generated.animationClass,
-        className
+        animated && vibe,
       )}
     >
-      <Avatar size={size}>
-        <AvatarImage src={src} alt={name ?? email ?? "User avatar"} />
+      <Avatar size={size} className={className}>
+        <AvatarImage src={avatarUrl ?? undefined} alt={name ?? email ?? "User avatar"} />
         <AvatarFallback className="gradient-accent text-xs font-bold text-white">
-          {generated.initials}
+          {initials}
         </AvatarFallback>
       </Avatar>
     </div>

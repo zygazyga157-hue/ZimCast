@@ -50,7 +50,7 @@ export async function PATCH(
         new Date(match.kickoff),
         match.streamKey
       );
-      programWarning = result.warning;
+      programWarning = result.warning ?? undefined;
     }
 
     return NextResponse.json({ ...match, programWarning });

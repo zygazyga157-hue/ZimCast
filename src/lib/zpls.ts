@@ -182,22 +182,37 @@ function deriveShortCode(name: string): string {
     .toUpperCase();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeStanding(r: any): ZplsStanding {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function toStringValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  return String(value);
+}
+
+function toIntValue(value: unknown): number {
+  const n = typeof value === "number" ? value : parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeStanding(raw: unknown): ZplsStanding {
+  const r = asRecord(raw);
   return {
-    team_id: String(r.team_id ?? ""),
-    name: r.name ?? "",
-    short_code: r.short_code ?? "",
-    logo: r.logo ?? "",
-    rank: parseInt(r.rank, 10) || 0,
-    matches: parseInt(r.matches, 10) || 0,
-    won: parseInt(r.won, 10) || 0,
-    draw: parseInt(r.drawn ?? r.draw, 10) || 0,
-    lost: parseInt(r.lost, 10) || 0,
-    goals_scored: parseInt(r.goals_scored, 10) || 0,
-    goals_conceded: parseInt(r.goals_conceded, 10) || 0,
-    goal_diff: parseInt(r.goal_diff, 10) || 0,
-    points: parseInt(r.points, 10) || 0,
+    team_id: toStringValue(r.team_id),
+    name: toStringValue(r.name),
+    short_code: toStringValue(r.short_code),
+    logo: toStringValue(r.logo),
+    rank: toIntValue(r.rank),
+    matches: toIntValue(r.matches),
+    won: toIntValue(r.won),
+    draw: toIntValue(r.drawn ?? r.draw),
+    lost: toIntValue(r.lost),
+    goals_scored: toIntValue(r.goals_scored),
+    goals_conceded: toIntValue(r.goals_conceded),
+    goal_diff: toIntValue(r.goal_diff),
+    points: toIntValue(r.points),
   };
 }
 
@@ -384,9 +399,8 @@ export async function getHistory(
 
 /** League standings — cached 15 min, logos validated via shared cache */
 export async function getStandings(): Promise<{ table: ZplsStanding[] }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [raw, fixtureData] = await Promise.all([
-    zpls<any>("leagues/table.json", {}, "zpls:standings", 900),
+    zpls<{ table?: unknown[] }>("leagues/table.json", {}, "zpls:standings", 900),
     getFixtures(1).catch(() => ({ fixtures: [] })),
   ]);
 
@@ -397,8 +411,8 @@ export async function getStandings(): Promise<{ table: ZplsStanding[] }> {
     if (f.away_id && f.away_logo) teamLogoMap.set(f.away_id, f.away_logo);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const table = (raw.table ?? []).map((r: any) => {
+  const rows = Array.isArray(raw.table) ? raw.table : [];
+  const table = rows.map((r) => {
     const standing = normalizeStanding(r);
     return {
       ...standing,

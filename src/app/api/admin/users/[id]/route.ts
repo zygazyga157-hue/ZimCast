@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
+import { publicUrlForKey } from "@/lib/media-storage";
 
 export async function GET(
   _req: NextRequest,
@@ -26,7 +27,8 @@ export async function GET(
         gender: true,
         city: true,
         country: true,
-        avatarUrl: true,
+        avatarKey: true,
+        bannerKey: true,
         role: true,
         isActive: true,
         emailVerified: true,
@@ -93,6 +95,10 @@ export async function GET(
 
     return NextResponse.json({
       ...user,
+      avatarUrl: publicUrlForKey(user.avatarKey),
+      bannerUrl: publicUrlForKey(user.bannerKey),
+      avatarKey: undefined,
+      bannerKey: undefined,
       dateOfBirth: user.dateOfBirth?.toISOString() ?? null,
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),

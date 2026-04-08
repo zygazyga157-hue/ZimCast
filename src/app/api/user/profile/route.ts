@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
-import { generateAvatar } from "@/lib/avatar";
+import { publicUrlForKey } from "@/lib/media-storage";
 
 export async function GET() {
   try {
@@ -22,7 +22,8 @@ export async function GET() {
         gender: true,
         city: true,
         country: true,
-        avatarUrl: true,
+        avatarKey: true,
+        bannerKey: true,
         emailVerified: true,
         interests: true,
         language: true,
@@ -33,7 +34,17 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(user);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ...user,
+      avatarUrl: publicUrlForKey(user.avatarKey),
+      bannerUrl: publicUrlForKey(user.bannerKey),
+      avatarKey: undefined,
+      bannerKey: undefined,
+    });
   } catch (error) {
     return handleApiError(error, "Profile fetch error");
   }
@@ -65,22 +76,6 @@ export async function PATCH(req: Request) {
       }
     }
 
-    // Regenerate avatar when name or interests change
-    if (data.name !== undefined || data.interests !== undefined) {
-      const current = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { name: true, email: true, interests: true },
-      });
-      const avatarName = (data.name as string | undefined) ?? current?.name;
-      const avatarInterests = (data.interests as string[] | undefined) ?? current?.interests ?? [];
-      const { dataUrl } = generateAvatar({
-        name: avatarName,
-        email: current?.email,
-        interests: avatarInterests,
-      });
-      data.avatarUrl = dataUrl;
-    }
-
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data,
@@ -93,14 +88,21 @@ export async function PATCH(req: Request) {
         gender: true,
         city: true,
         country: true,
-        avatarUrl: true,
+        avatarKey: true,
+        bannerKey: true,
         interests: true,
         language: true,
         notificationPrefs: true,
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({
+      ...user,
+      avatarUrl: publicUrlForKey(user.avatarKey),
+      bannerUrl: publicUrlForKey(user.bannerKey),
+      avatarKey: undefined,
+      bannerKey: undefined,
+    });
   } catch (error) {
     return handleApiError(error, "Profile update error");
   }

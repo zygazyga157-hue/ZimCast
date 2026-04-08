@@ -289,7 +289,7 @@ ZimCast/
 │   │   ├── insights.ts         # Personalised viewing insight generator
 │   │   ├── tokens.ts           # HMAC stream token generation
 │   │   ├── api.ts              # Client-side fetch wrapper
-│   │   ├── avatar.ts           # Avatar generation from user data
+│   │   ├── media-storage.ts    # S3/R2 profile media storage (presign + verify)
 │   │   ├── mail.ts             # SMTP email helpers
 │   │   ├── match-program.ts    # Match ↔ Program linking
 │   │   ├── match-window.ts     # Match lifecycle phase logic
@@ -315,7 +315,6 @@ ZimCast/
     │   ├── request.ts          # Test HTTP helpers
     │   └── server.ts           # Test server bootstrap
     └── unit/
-        ├── avatar.test.ts      # Avatar generation tests
         ├── prisma.test.ts      # Prisma client tests
         └── tokens.test.ts      # Stream token tests
 ```
@@ -429,6 +428,19 @@ SMTP_FROM="<your-email@gmail.com>"
 # ─── App ─────────────────────────────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_STREAM_BASE_URL="http://localhost:8888"
+
+# ─── Profile Media (Avatar/Banner uploads) ───────────────────────────────────
+# S3-compatible storage (Cloudflare R2 recommended). Used by:
+# - POST /api/user/media/presign
+# - POST /api/user/media/commit
+# - DELETE /api/user/media
+MEDIA_S3_ENDPOINT="https://<accountid>.r2.cloudflarestorage.com"
+MEDIA_S3_REGION="auto"
+MEDIA_S3_BUCKET="<your-bucket-name>"
+MEDIA_S3_ACCESS_KEY_ID="<r2-access-key-id>"
+MEDIA_S3_SECRET_ACCESS_KEY="<r2-secret-access-key>"
+# Public base URL that serves the uploaded objects (custom domain or r2.dev)
+MEDIA_PUBLIC_BASE_URL="https://cdn.yourdomain.com"
 ```
 
 ---
@@ -1443,5 +1455,5 @@ prohibited without prior written consent from Zimbit Solutions.
 ---
 
 <p align="center">
-  Built with ❤️ by <strong>Zimbit Solutions</strong> — Harare, Zimbabwe
+  Built with ❤️ by <strong>Zimbit Solutions & Zyga.dev</strong> — Bulawayo, Zimbabwe
 </p>

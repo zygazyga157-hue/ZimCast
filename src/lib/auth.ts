@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { publicUrlForKey } from "@/lib/media-storage";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -43,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           emailVerified: user.emailVerified,
-          avatarUrl: user.avatarUrl,
+          avatarUrl: publicUrlForKey(user.avatarKey),
         };
       },
     }),
@@ -60,11 +61,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { emailVerified: true, avatarUrl: true },
+          select: { emailVerified: true, avatarKey: true },
         });
         if (dbUser) {
           token.emailVerified = dbUser.emailVerified;
-          token.avatarUrl = dbUser.avatarUrl;
+          token.avatarUrl = publicUrlForKey(dbUser.avatarKey);
         }
       }
       return token;

@@ -24,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { useZimcastSocket } from "@/hooks/use-zimcast-socket";
 
@@ -158,15 +157,14 @@ export function Navbar() {
 
   useEffect(() => {
     if (tickerItems.length <= 1) {
-      setTickerIdx(0);
-      return;
+      const reset = setTimeout(() => setTickerIdx(0), 0);
+      return () => clearTimeout(reset);
     }
     const t = setInterval(
       () => setTickerIdx((i) => (i + 1) % tickerItems.length),
       4500,
     );
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickerItems.length]);
 
   return (

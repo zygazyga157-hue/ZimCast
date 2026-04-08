@@ -79,6 +79,17 @@ export default function MatchDetailPage({
 
   // Countdown state (must be declared unconditionally)
   const [countdown, setCountdown] = useState("");
+  const [nowMs, setNowMs] = useState(0);
+
+  // Track time in state to keep render pure (no Date.now() in render paths)
+  useEffect(() => {
+    const initial = setTimeout(() => setNowMs(Date.now()), 0);
+    const interval = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!match) return;
@@ -393,7 +404,16 @@ export default function MatchDetailPage({
             (() => {
               const passStart = match.passStart ? new Date(match.passStart) : null;
               const passEnd = match.passEnd ? new Date(match.passEnd) : null;
-              const now = Date.now();
+
+              if (!nowMs) {
+                return (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                );
+              }
+
+              const now = nowMs;
               const isBeforeWindow = passStart && now < passStart.getTime();
               const isExpired = passEnd && now >= passEnd.getTime();
 

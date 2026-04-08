@@ -167,8 +167,8 @@ export function MatchSimulation() {
   useEffect(() => {
     if (!started || done) return;
     if (idx >= PHASES.length - 1) {
-      setDone(true);
-      return;
+      const finish = setTimeout(() => setDone(true), 0);
+      return () => clearTimeout(finish);
     }
     const t = setTimeout(() => setIdx((i) => i + 1), PHASE_MS);
     return () => clearTimeout(t);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -19,15 +19,14 @@ import {
   Trophy,
   Activity,
   MapPin,
-  Globe,
   Languages,
-  Settings2,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
   AccordionContent,
@@ -66,6 +65,7 @@ interface Profile {
   city: string | null;
   country: string | null;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   emailVerified: boolean;
   interests: string[];
   language: string;
@@ -86,6 +86,19 @@ interface Pass {
     isLive: boolean;
   };
 }
+
+type MediaKind = "avatar" | "banner";
+
+const MEDIA_ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const MEDIA_MAX_BYTES: Record<MediaKind, number> = {
+  avatar: 2 * 1024 * 1024,
+  banner: 5 * 1024 * 1024,
+};
 
 interface AnalyticsData {
   totalWatchTime: number;
@@ -125,6 +138,10 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [resending, setResending] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
   // Form fields
   const [name, setName] = useState("");
@@ -196,6 +213,133 @@ export default function ProfilePage() {
         : [...prev, interest]
     );
   }
+
+  const uploadMedia = useCallback(
+    async (kind: MediaKind, file: File) => {
+      if (!MEDIA_ALLOWED_TYPES.has(file.type)) {
+        toast.error("Unsupported file type. Please upload a PNG, JPG, or WebP.");
+        return;
+      }
+
+      const maxBytes = MEDIA_MAX_BYTES[kind];
+      if (file.size > maxBytes) {
+        const mb = Math.round(maxBytes / 1024 / 1024);
+        toast.error(`File is too large. Max size is ${mb}MB.`);
+        return;
+      }
+
+      if (kind === "avatar") setAvatarUploading(true);
+      else setBannerUploading(true);
+
+      try {
+        const presign = await api<{
+          key: string;
+          uploadUrl: string;
+          publicUrl: string | null;
+        }>("/api/user/media/presign", {
+          method: "POST",
+          body: { kind, contentType: file.type },
+        });
+
+        const putRes = await fetch(presign.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!putRes.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const committed = await api<{
+          avatarUrl: string | null;
+          bannerUrl: string | null;
+        }>("/api/user/media/commit", {
+          method: "POST",
+          body: { kind, key: presign.key },
+        });
+
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                avatarUrl: committed.avatarUrl ?? prev.avatarUrl,
+                bannerUrl: committed.bannerUrl ?? prev.bannerUrl,
+              }
+            : prev
+        );
+
+        if (kind === "avatar") {
+          await updateSession();
+          toast.success("Profile photo updated");
+        } else {
+          toast.success("Banner updated");
+        }
+      } catch (err) {
+        showApiError(err, kind === "avatar" ? "Failed to update profile photo" : "Failed to update banner");
+      } finally {
+        if (kind === "avatar") setAvatarUploading(false);
+        else setBannerUploading(false);
+
+        // Reset inputs so selecting the same file again triggers onChange
+        if (kind === "avatar" && avatarInputRef.current) avatarInputRef.current.value = "";
+        if (kind === "banner" && bannerInputRef.current) bannerInputRef.current.value = "";
+      }
+    },
+    [updateSession]
+  );
+
+  const removeMedia = useCallback(
+    async (kind: MediaKind) => {
+      if (kind === "avatar") setAvatarUploading(true);
+      else setBannerUploading(true);
+
+      try {
+        await api("/api/user/media", { method: "DELETE", body: { kind } });
+
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                avatarUrl: kind === "avatar" ? null : prev.avatarUrl,
+                bannerUrl: kind === "banner" ? null : prev.bannerUrl,
+              }
+            : prev
+        );
+
+        if (kind === "avatar") {
+          await updateSession();
+          toast.success("Profile photo removed");
+        } else {
+          toast.success("Banner removed");
+        }
+      } catch (err) {
+        showApiError(err, kind === "avatar" ? "Failed to remove profile photo" : "Failed to remove banner");
+      } finally {
+        if (kind === "avatar") setAvatarUploading(false);
+        else setBannerUploading(false);
+      }
+    },
+    [updateSession]
+  );
+
+  const onAvatarFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      void uploadMedia("avatar", file);
+    },
+    [uploadMedia]
+  );
+
+  const onBannerFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      void uploadMedia("banner", file);
+    },
+    [uploadMedia]
+  );
 
   async function handleSave() {
     setSaving(true);
@@ -271,21 +415,115 @@ export default function ProfilePage() {
           className="relative overflow-hidden rounded-2xl border border-border bg-card"
         >
           {/* Banner background */}
-          <div className="h-28 w-full bg-gradient-to-br from-primary/20 via-card to-accent/10" />
+          <div className="relative h-28 w-full overflow-hidden">
+            {profile?.bannerUrl ? (
+              <>
+                <img
+                  src={profile.bannerUrl}
+                  alt="Profile banner"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/60" />
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-accent/10" />
+            )}
+
+            <div className="absolute right-3 top-3 flex items-center gap-2">
+              <Button
+                type="button"
+                size="xs"
+                variant="secondary"
+                disabled={bannerUploading}
+                onClick={() => bannerInputRef.current?.click()}
+                className="bg-background/60 hover:bg-background/70"
+              >
+                {bannerUploading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Upload className="h-3 w-3" />
+                )}
+                {profile?.bannerUrl ? "Change" : "Add Banner"}
+              </Button>
+              {profile?.bannerUrl && (
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="secondary"
+                  disabled={bannerUploading}
+                  onClick={() => void removeMedia("banner")}
+                  className="bg-background/60 hover:bg-background/70"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Remove
+                </Button>
+              )}
+            </div>
+
+            {/* Hidden inputs */}
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={onBannerFileChange}
+            />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={onAvatarFileChange}
+            />
+          </div>
 
           {/* Avatar overlapping banner */}
           <div className="relative px-6 pb-6">
             <div className="-mt-14 flex flex-col items-center sm:flex-row sm:items-end sm:gap-5">
               <div className="shrink-0">
-                <ProfileAvatar
-                  avatarUrl={profile?.avatarUrl}
-                  name={profile?.name}
-                  email={profile?.email}
-                  interests={profile?.interests}
-                  animated
-                  size="lg"
-                  className="h-24 w-24 ring-4 ring-card sm:h-28 sm:w-28"
-                />
+                <div className="relative">
+                  <ProfileAvatar
+                    avatarUrl={profile?.avatarUrl}
+                    name={profile?.name}
+                    email={profile?.email}
+                    interests={profile?.interests}
+                    animated
+                    size="lg"
+                    className="h-24 w-24 ring-4 ring-card sm:h-28 sm:w-28"
+                  />
+
+                  <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon-xs"
+                      variant="secondary"
+                      disabled={avatarUploading}
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="rounded-full shadow-sm bg-background/70 hover:bg-background/80"
+                      aria-label="Change profile photo"
+                    >
+                      {avatarUploading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    {profile?.avatarUrl && (
+                      <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="secondary"
+                        disabled={avatarUploading}
+                        onClick={() => void removeMedia("avatar")}
+                        className="rounded-full shadow-sm bg-background/70 hover:bg-background/80"
+                        aria-label="Remove profile photo"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-3 min-w-0 text-center sm:mb-1 sm:text-left">

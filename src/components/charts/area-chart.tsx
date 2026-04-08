@@ -83,7 +83,10 @@ export function AreaChart({
           cornerRadius: 8,
           displayColors: false,
           callbacks: {
-            label: (ctx) => `${label}: ${prefix}${ctx.parsed.y.toLocaleString()}`,
+            label: (ctx) => {
+              const y = typeof ctx.parsed.y === "number" ? ctx.parsed.y : 0;
+              return `${label}: ${prefix}${y.toLocaleString()}`;
+            },
           },
         },
       },

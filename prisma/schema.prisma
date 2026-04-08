@@ -55,6 +55,8 @@ model User {
   gender             String?
   city               String?
   country            String?
+  avatarKey          String?
+  bannerKey          String?
   avatarUrl          String?
   role               Role      @default(USER)
   emailVerified      Boolean   @default(false)
