@@ -218,7 +218,7 @@ function normalizeStanding(raw: unknown): ZplsStanding {
 
 // ── Logo validation & cache ─────────────────────────────────────────────────
 
-const LOGO_CACHE_KEY = "zpls:team-logos";
+const LOGO_CACHE_KEY = "zpls:team-logos:v2";
 const LOGO_TTL = 86400; // 24 hours — logos rarely change
 
 /**
@@ -243,38 +243,44 @@ async function resolveTeamLogos(
   try {
     const cached = await redis.hmget(LOGO_CACHE_KEY, ...ids);
     for (let i = 0; i < ids.length; i++) {
-      if (cached[i] !== null) {
-        result.set(ids[i], cached[i]!);
-      } else {
-        const logo = unique.get(ids[i]) ?? "";
-        if (logo) {
-          toValidate.push({ id: ids[i], logo });
-        } else {
-          result.set(ids[i], "");
-        }
+      const cachedLogo = cached[i];
+      if (typeof cachedLogo === "string" && cachedLogo.trim()) {
+        result.set(ids[i], cachedLogo);
+        continue;
+      }
+
+      const logo = unique.get(ids[i]) ?? "";
+      if (logo) {
+        toValidate.push({ id: ids[i], logo });
       }
     }
   } catch {
     // Redis unavailable — validate everything
     for (const [id, logo] of unique) {
       if (logo) toValidate.push({ id, logo });
-      else result.set(id, "");
     }
   }
 
   if (toValidate.length === 0) return result;
 
-  // HEAD-request each uncached logo URL in parallel
+  // GET-request each uncached logo URL in parallel (some hosts block HEAD)
   const validations = await Promise.allSettled(
     toValidate.map(async (t) => {
       try {
-        const res = await fetch(t.logo, { method: "HEAD" });
+        const res = await fetch(t.logo, {
+          method: "GET",
+          cache: "no-store",
+          signal: AbortSignal.timeout(8000),
+        });
         const ct = res.headers.get("content-type") ?? "";
-        // A .png URL that returns SVG is the CDN's 404 placeholder
-        const isPng = t.logo.endsWith(".png");
-        const isValid =
-          res.ok && ct.startsWith("image/") && !(isPng && ct.includes("svg"));
-        return { id: t.id, url: isValid ? t.logo : "" };
+        try {
+          res.body?.cancel();
+        } catch {
+          // ignore
+        }
+        const isValid = res.ok && ct.startsWith("image/");
+        if (!isValid) return { id: t.id, url: "" };
+        return { id: t.id, url: t.logo };
       } catch {
         return { id: t.id, url: "" };
       }
@@ -284,8 +290,10 @@ async function resolveTeamLogos(
   const toCache: Record<string, string> = {};
   for (const v of validations) {
     if (v.status === "fulfilled") {
-      result.set(v.value.id, v.value.url);
-      toCache[v.value.id] = v.value.url;
+      if (v.value.url) {
+        result.set(v.value.id, v.value.url);
+        toCache[v.value.id] = v.value.url;
+      }
     }
   }
 
@@ -325,8 +333,8 @@ function applyValidatedLogos(
 ): ZplsFixture[] {
   return fixtures.map((f) => ({
     ...f,
-    home_logo: logoMap.get(f.home_id) ?? "",
-    away_logo: logoMap.get(f.away_id) ?? "",
+    home_logo: logoMap.get(f.home_id) || f.home_logo || "",
+    away_logo: logoMap.get(f.away_id) || f.away_logo || "",
   }));
 }
 

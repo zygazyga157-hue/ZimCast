@@ -202,7 +202,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (searchParams.get("verified") === "true") {
       toast.success("Email verified successfully!");
-      updateSession();
+      void updateSession({ reason: "verified" });
     }
   }, [searchParams, updateSession]);
 
@@ -270,7 +270,7 @@ export default function ProfilePage() {
         );
 
         if (kind === "avatar") {
-          await updateSession();
+          await updateSession({ reason: "avatar" });
           toast.success("Profile photo updated");
         } else {
           toast.success("Banner updated");
@@ -308,7 +308,7 @@ export default function ProfilePage() {
         );
 
         if (kind === "avatar") {
-          await updateSession();
+          await updateSession({ reason: "avatar_remove" });
           toast.success("Profile photo removed");
         } else {
           toast.success("Banner removed");
@@ -362,7 +362,7 @@ export default function ProfilePage() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
       setSaved(true);
       toast.success("Profile updated");
-      await updateSession();
+      await updateSession({ reason: "profile_save" });
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       showApiError(err, "Failed to save profile");
