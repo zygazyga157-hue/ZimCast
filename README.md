@@ -25,18 +25,23 @@ paying viewers through a modern progressive web application.
 8.  [Authentication](#authentication)
 9.  [Payment Gateway — EcoCash & Paynow](#payment-gateway--ecocash--paynow)
 10. [Streaming Infrastructure](#streaming-infrastructure)
-11. [Information Required from ZBC](#information-required-from-zbc)
-12. [Information Required from Zimbit Solutions](#information-required-from-zimbit-solutions)
-13. [Information Required from Paynow / EcoCash](#information-required-from-paynow--ecocash)
-14. [Admin Dashboard](#admin-dashboard)
-15. [EPG (Electronic Programme Guide)](#epg-electronic-programme-guide)
-16. [API Reference](#api-reference)
-17. [Testing](#testing)
-18. [Docker Deployment](#docker-deployment)
-19. [Scripts & Tooling](#scripts--tooling)
-20. [Security](#security)
-21. [Contributing](#contributing)
-22. [License](#license)
+11. [Real-Time WebSocket System](#real-time-websocket-system)
+12. [ZPLS — Zimbabwe Premier Soccer League Data](#zpls--zimbabwe-premier-soccer-league-data)
+13. [Analytics & Personalisation](#analytics--personalisation)
+14. [Information Required from ZBC](#information-required-from-zbc)
+15. [Information Required from Zimbit Solutions](#information-required-from-zimbit-solutions)
+16. [Information Required from Paynow / EcoCash](#information-required-from-paynow--ecocash)
+17. [Information Required from LiveScore API (ZPLS)](#information-required-from-livescore-api-zpls)
+18. [Admin Dashboard](#admin-dashboard)
+19. [EPG (Electronic Programme Guide)](#epg-electronic-programme-guide)
+20. [API Reference](#api-reference)
+21. [Testing](#testing)
+22. [Docker Deployment](#docker-deployment)
+23. [Scripts & Tooling](#scripts--tooling)
+24. [Security](#security)
+25. [Redis Cache Reference](#redis-cache-reference)
+26. [Contributing](#contributing)
+27. [License](#license)
 
 ---
 
@@ -48,13 +53,17 @@ paying viewers through a modern progressive web application.
 | **Sports PPV**        | Pay-per-match Zimbabwe PSL football streams                       |
 | **EcoCash Payments**  | USSD-based mobile money via Paynow `sendMobile()` API             |
 | **Paynow Web**        | Browser-redirect card/wallet payments via Paynow `send()` API     |
-| **Admin Dashboard**   | Full CRUD for matches, programs (EPG), users, payments, KPIs      |
+| **Admin Dashboard**   | Full CRUD for matches, programs (EPG), users, payments, analytics ||
 | **Real-time Viewers** | Redis sorted-set heartbeat counter showing live viewer counts     |
 | **Adaptive Bitrate**  | 1080p / 720p / 480p / 360p HLS variants via FFmpeg transcoding    |
 | **Low-Latency HLS**   | Sub-2-second latency using MediaMTX LL-HLS with 1s segments       |
 | **Auth System**       | Email/password with email verification, forgot/reset password     |
 | **Profile System**    | User profiles with avatar, phone, interests, notification prefs   |
 | **EPG**               | Electronic Programme Guide with category icons and live indicators|
+| **WebSockets**        | Real-time EPG + match updates via Redis Pub/Sub + WS broadcast    |
+| **ZPLS Integration**  | Live scores, fixtures, standings from LiveScore API               |
+| **Analytics**         | Viewing heatmaps, category breakdowns, personalised insights      |
+| **Program Templates** | Recurring schedule templates with bulk program generation         |
 | **PWA Ready**         | Responsive dark-theme UI optimised for mobile-first Zimbabwe users|
 
 ---
@@ -102,8 +111,14 @@ paying viewers through a modern progressive web application.
 │  ├── /api/payments/*     — Paynow initiate, poll, webhook            │
 │  ├── /api/streams/*      — Token generation + auth hook              │
 │  ├── /api/programs/*     — EPG CRUD                                  │
-│  ├── /api/user/*         — Profile, passes, analytics                │
-│  └── /api/admin/*        — Stats, users, payments (admin only)       │
+│  ├── /api/zpls/*         — ZPLS live scores, fixtures, standings     │
+│  ├── /api/user/*         — Profile, passes, analytics, insights      │
+│  ├── /api/activity       — Viewing activity tracking                 │
+│  └── /api/admin/*        — Stats, analytics, users, payments (admin) │
+│                                                                      │
+│  Custom Server (server.ts via tsx)                                    │
+│  ├── WebSocket (/ws)     — Real-time EPG + match push via Redis PubSub│
+│  └── EPG Scheduler       — Program-boundary timer for auto-push      │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
             │                           │
@@ -113,13 +128,14 @@ paying viewers through a modern progressive web application.
 │                     │     │                             │
 │ • Users             │     │ • API response cache (60s)  │
 │ • Matches           │     │ • Viewer count sorted sets  │
-│ • MatchPasses       │     │ • Session rate limiting     │
-│ • Payments          │     │                             │
-│ • Programs (EPG)    │     │                             │
+│ • MatchPasses       │     │ • Pub/Sub (EPG + matches)   │
+│ • Payments          │     │ • ZPLS data cache           │
+│ • Programs (EPG)    │     │ • User insight cache        │
+│ • ProgramTemplates  │     │ • Team logo validation      │
 │ • ViewingActivity   │     │                             │
 └─────────────────────┘     └─────────────────────────────┘
-            │
-            ▼
+            │                           │
+            ▼                           ▼
 ┌─────────────────────────────────────────────────┐
 │           Paynow Payment Gateway                │
 │                                                 │
@@ -127,6 +143,16 @@ paying viewers through a modern progressive web application.
 │  Paynow Web (send)    ←→ Browser redirect       │
 │  Webhook              → POST /api/payments/webhook│
 │  Return URL           → /payment/success         │
+└─────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────┐
+│        LiveScore API (livescore-api.com)         │
+│                                                 │
+│  Fixtures   → ZPLS match schedule               │
+│  Live Scores → In-play match data               │
+│  History    → Completed match results           │
+│  Standings  → League table (W/D/L/Pts)          │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -141,12 +167,15 @@ paying viewers through a modern progressive web application.
 | **Language**   | TypeScript                    | 5.x       | Type safety throughout                    |
 | **Database**   | PostgreSQL                    | 16        | Primary data store                        |
 | **ORM**        | Prisma                        | 7.6.0     | Schema-first database access              |
-| **Cache**      | Redis (ioredis)               | 7 / 5.10  | API caching + viewer counters             |
+| **Cache**      | Redis (ioredis)               | 7 / 5.10  | API caching + viewer counters + Pub/Sub   |
+| **WebSocket**  | ws                            | 8.20.0    | Real-time server push to browsers         |
 | **Auth**       | NextAuth.js v5 (beta)         | 5.0.0-β30 | JWT credentials authentication            |
 | **Payments**   | Paynow SDK                    | 2.2.2     | EcoCash + web payments                    |
+| **Sports Data**| LiveScore API                 | —         | ZPLS fixtures, live scores, standings     |
 | **Streaming**  | MediaMTX                      | 1.17.0    | SRT ingest → HLS delivery                 |
 | **Player**     | video.js                      | 8.23.7    | HLS playback in browser                   |
 | **UI**         | shadcn/ui + Tailwind CSS 4    | Latest    | Component library + utility CSS           |
+| **Charts**     | Chart.js + react-chartjs-2    | 4.5 / 5.3 | Doughnut, area, radar analytics charts    |
 | **Animations** | Framer Motion                 | 12.38.0   | Page transitions + micro-animations       |
 | **Icons**      | Lucide React                  | 1.7.0     | Consistent icon system                    |
 | **Email**      | Nodemailer                    | 7.0.13    | Verification + password reset emails      |
@@ -154,6 +183,7 @@ paying viewers through a modern progressive web application.
 | **Testing**    | Vitest + Testcontainers       | 4.1.2     | Unit + integration testing                |
 | **Container**  | Docker + Docker Compose       | —         | Production deployment                     |
 | **Transcoding**| FFmpeg                        | —         | Adaptive bitrate encoding                 |
+| **Entry**      | tsx + cross-env               | 4.21 / 10 | Custom server runner + env portability     |
 
 ---
 
@@ -161,6 +191,7 @@ paying viewers through a modern progressive web application.
 
 ```
 ZimCast/
+├── server.ts                   # Custom HTTP + WebSocket entry point (tsx)
 ├── docker-compose.yml          # Full stack: app + db + redis + mediamtx
 ├── Dockerfile                  # Multi-stage Next.js production build
 ├── docker/
@@ -168,33 +199,37 @@ ZimCast/
 ├── mediamtx/
 │   └── mediamtx.yml            # MediaMTX configuration (SRT→HLS, auth hook)
 ├── prisma/
-│   ├── schema.prisma           # Database schema (6 models, 6 enums)
+│   ├── schema.prisma           # Database schema (7 models, 5 enums)
 │   └── seed.ts                 # Admin user + sample matches
 ├── scripts/
 │   └── transcode.sh            # FFmpeg ABR transcoding (4 quality levels)
 ├── src/
+│   ├── proxy.ts                # Next.js auth middleware (route protection)
 │   ├── app/
 │   │   ├── globals.css         # Tailwind + custom CSS variables + keyframes
 │   │   ├── layout.tsx          # Root layout with SessionProvider + Toaster
-│   │   ├── page.tsx            # Landing page (7 sections)
 │   │   │
 │   │   ├── (app)/              # Public route group (Navbar + Footer)
+│   │   │   ├── page.tsx        # Landing page (hero, features, how-it-works, match sim)
 │   │   │   ├── live-tv/        # ZTV live stream + EPG
-│   │   │   ├── sports/         # Match listings with hero + filters
-│   │   │   │   └── [id]/       # Match detail + payment flow
+│   │   │   ├── sports/         # Match listings + ZPLS fixtures + standings
+│   │   │   │   └── [id]/       # Match detail + payment flow + live score
 │   │   │   ├── watch/
 │   │   │   │   └── [id]/       # Stream viewer (post-payment)
 │   │   │   ├── payment/
 │   │   │   │   └── success/    # Paynow return page
-│   │   │   └── profile/        # User settings + viewing history
+│   │   │   ├── profile/        # User settings + analytics + viewing history
+│   │   │   └── analytics/      # Full viewing analytics dashboard
 │   │   │
 │   │   ├── (admin)/            # Admin route group (separate layout)
 │   │   │   └── admin/
 │   │   │       ├── page.tsx    # Overview: KPIs + recent payments
-│   │   │       ├── matches/    # Match CRUD
+│   │   │       ├── analytics/  # Admin analytics with demographic filters
+│   │   │       ├── matches/    # Match CRUD (with ZPLS fixture import)
 │   │   │       ├── programs/   # EPG CRUD
+│   │   │       ├── templates/  # Recurring schedule templates
 │   │   │       ├── users/      # User management
-│   │   │       └── payments/   # Payment log
+│   │   │       └── payments/   # Payment log with filters
 │   │   │
 │   │   ├── (auth)/             # Auth route group (split-screen layout)
 │   │   │   ├── login/
@@ -206,34 +241,59 @@ ZimCast/
 │   │       ├── auth/           # NextAuth + register + verify + reset
 │   │       ├── matches/        # Public match data (cached 60s)
 │   │       ├── payments/       # Initiate, poll, webhook
-│   │       ├── streams/        # Token gen + auth hook + viewers
+│   │       ├── streams/        # Token gen + auth hook + viewers + ZTV
 │   │       ├── programs/       # EPG data
-│   │       ├── user/           # Profile, passes, analytics
-│   │       ├── admin/          # Stats, users, payments (admin-only)
+│   │       ├── epg/            # EPG summary (WebSocket-published)
+│   │       ├── zpls/           # ZPLS fixtures, live, history, standings
+│   │       ├── activity/       # Viewing activity tracking
+│   │       ├── user/           # Profile, passes, analytics, insights
+│   │       ├── admin/          # Stats, analytics, users, payments, templates
 │   │       └── health/         # Health check endpoint
 │   │
 │   ├── components/             # Reusable React components
 │   │   ├── ui/                 # shadcn/ui primitives (button, card, etc.)
+│   │   ├── analytics/          # Stats cards, heatmap, category chart
+│   │   ├── charts/             # Doughnut, area, radar chart wrappers
 │   │   ├── video-player.tsx    # video.js HLS player wrapper
+│   │   ├── match-simulation.tsx# Interactive SVG pitch animation (1992 AFCON)
 │   │   ├── stream-controls.tsx # Viewer count + quality + share
 │   │   ├── sports-hero.tsx     # Featured match hero banner
 │   │   ├── match-card.tsx      # VS-style match card
 │   │   ├── match-filters.tsx   # Animated filter tabs
 │   │   ├── empty-matches.tsx   # Filter-aware empty states
-│   │   ├── navbar.tsx          # App navigation bar
+│   │   ├── navbar.tsx          # App nav bar (WebSocket EPG updates)
+│   │   ├── epg-strip.tsx       # Horizontal EPG timeline
+│   │   ├── epg-full-schedule.tsx # Accordion EPG day view
+│   │   ├── blackout-countdown.tsx # ZTV blackout timer
+│   │   ├── now-playing.tsx     # Current programme display
+│   │   ├── up-next.tsx         # Upcoming programme card
+│   │   ├── off-air-screen.tsx  # Off-air state component
+│   │   ├── recommendations.tsx # Personalised content suggestions
 │   │   ├── admin-tabs.tsx      # Admin dashboard tabs
-│   │   └── ...                 # EPG, off-air, recommendations, etc.
+│   │   └── ...                 # Footer, team logos, profile avatar, etc.
 │   │
 │   ├── hooks/
-│   │   └── use-viewer-count.ts # Heartbeat-based viewer counter
+│   │   ├── use-zimcast-socket.ts # WebSocket client hook (singleton)
+│   │   ├── use-viewer-count.ts   # Heartbeat-based viewer counter
+│   │   └── use-track-activity.ts # Viewing activity tracker
 │   │
 │   ├── lib/
 │   │   ├── auth.ts             # NextAuth configuration
 │   │   ├── paynow.ts           # Paynow SDK wrapper (typed)
 │   │   ├── prisma.ts           # Prisma client singleton
 │   │   ├── redis.ts            # Redis client singleton
+│   │   ├── redis-pubsub.ts     # Dedicated Pub/Sub ioredis clients
+│   │   ├── ws-server.ts        # WebSocket server (broadcast + keepalive)
+│   │   ├── epg-scheduler.ts    # Program-boundary timer (auto-push EPG)
+│   │   ├── zpls.ts             # LiveScore API client (ZPLS data)
+│   │   ├── insights.ts         # Personalised viewing insight generator
 │   │   ├── tokens.ts           # HMAC stream token generation
 │   │   ├── api.ts              # Client-side fetch wrapper
+│   │   ├── avatar.ts           # Avatar generation from user data
+│   │   ├── mail.ts             # SMTP email helpers
+│   │   ├── match-program.ts    # Match ↔ Program linking
+│   │   ├── match-window.ts     # Match lifecycle phase logic
+│   │   ├── utils.ts            # General utilities
 │   │   └── errors.ts           # Server-side error handler
 │   │
 │   └── types/
@@ -255,6 +315,7 @@ ZimCast/
     │   ├── request.ts          # Test HTTP helpers
     │   └── server.ts           # Test server bootstrap
     └── unit/
+        ├── avatar.test.ts      # Avatar generation tests
         ├── prisma.test.ts      # Prisma client tests
         └── tokens.test.ts      # Stream token tests
 ```
@@ -374,7 +435,7 @@ NEXT_PUBLIC_STREAM_BASE_URL="http://localhost:8888"
 
 ## Database
 
-### Schema Overview (6 Models)
+### Schema Overview (7 Models)
 
 | Model              | Purpose                                           |
 | ------------------ | ------------------------------------------------- |
@@ -383,6 +444,7 @@ NEXT_PUBLIC_STREAM_BASE_URL="http://localhost:8888"
 | **MatchPass**      | Time-limited access passes (userId + matchId)     |
 | **Payment**        | Payment records with provider, status, poll URL   |
 | **Program**        | EPG entries (title, category, time, channel)      |
+| **ProgramTemplate**| Recurring schedule templates for bulk generation  |
 | **ViewingActivity**| Analytics: what users watch, for how long         |
 
 ### Enums
@@ -392,7 +454,7 @@ NEXT_PUBLIC_STREAM_BASE_URL="http://localhost:8888"
 | `Role`              | `USER`, `ADMIN`                                       |
 | `PaymentProvider`   | `ECOCASH`, `PAYNOW`                                  |
 | `PaymentStatus`     | `PENDING`, `COMPLETED`, `FAILED`                      |
-| `ProgramCategory`   | `NEWS`, `SPORTS`, `ENTERTAINMENT`, `MUSIC`, `DOCUMENTARY`, `OTHER` |
+| `ProgramCategory`   | `NEWS`, `SPORTS`, `ENTERTAINMENT`, `MUSIC`, `DOCUMENTARY`, `GAMING`, `TRAVEL`, `FOOD`, `TECH`, `FASHION`, `FITNESS`, `ART` |
 | `ViewAction`        | `WATCH`, `SKIP`, `CLICK`, `LIKE`, `SEARCH`            |
 
 ### Commands
@@ -623,6 +685,192 @@ Usage:
 
 ---
 
+## Real-Time WebSocket System
+
+ZimCast uses a **custom HTTP + WebSocket server** (`server.ts`) to push real-time
+updates to all connected browsers without polling.
+
+### Architecture
+
+```
+┌──────────────────┐     ┌─────────────────┐     ┌────────────────────┐
+│  Admin Mutation   │     │  EPG Scheduler  │     │  Next.js API Route │
+│  (POST/PATCH/DEL) │     │  (setTimeout)   │     │  (/api/epg/summary)│
+└────────┬─────────┘     └────────┬────────┘     └────────┬───────────┘
+         │                        │                       │
+         ▼                        ▼                       ▼
+    redisPub.publish("zimcast:epg" | "zimcast:matches", JSON)
+                        │
+                        ▼
+              ┌──────────────────┐
+              │   redisSub       │
+              │   (subscriber)   │
+              └────────┬─────────┘
+                       │
+                       ▼
+              ┌──────────────────┐
+              │   ws-server.ts   │──── broadcast to all OPEN clients
+              │   (/ws endpoint) │
+              └──────────────────┘
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+      Browser 1    Browser 2    Browser N
+      (navbar)     (sports)     (live-tv)
+```
+
+### Components
+
+| File                  | Purpose                                                      |
+| --------------------- | ------------------------------------------------------------ |
+| `server.ts`           | Custom Node HTTP server, attaches WS + starts EPG scheduler  |
+| `src/lib/ws-server.ts`| WebSocket manager — upgrade handler, broadcast, keepalive    |
+| `src/lib/redis-pubsub.ts` | Dedicated publish/subscribe ioredis clients             |
+| `src/lib/epg-scheduler.ts`| Program-boundary timer — pushes EPG at exact transitions|
+| `src/hooks/use-zimcast-socket.ts` | Client-side singleton WS hook with topic routing |
+
+### Message Types
+
+| Redis Channel      | Message Type   | Data Payload               | Consumers               |
+| ------------------ | -------------- | -------------------------- | ------------------------ |
+| `zimcast:epg`      | `epg:update`   | Full EPG summary object    | Navbar, Live TV page     |
+| `zimcast:matches`  | `match:update`  | `{}` (client re-fetches)  | Sports page              |
+
+### How It Works
+
+1. **Custom server** (`server.ts`) creates an HTTP server, passes it to Next.js for
+   request handling, then attaches a WebSocket upgrade handler on `/ws`
+2. **EPG Scheduler** queries the database for the current and next programme,
+   computes the exact time until the next programme boundary, and sets a
+   `setTimeout` for that moment + 500 ms buffer
+3. At each boundary, the scheduler builds a summary, writes it to Redis cache,
+   and publishes to `zimcast:epg` — the WS server broadcasts it to all clients
+4. **Admin mutations** (creating/editing/deleting matches or programmes) publish
+   update messages so all viewers see changes within milliseconds
+5. **Client hook** (`useZimcastSocket`) maintains a module-level singleton WebSocket
+   with exponential-backoff reconnection (1 s → 30 s cap) and topic-based routing
+
+### Connection Health
+
+- **Ping/pong keepalive:** Server pings every 30 s, terminates clients that fail
+  to respond within 5 s
+- **HMR compatibility:** Upgrade handler passes through all non-`/ws` upgrades
+  (e.g. `/_next/webpack-hmr`) so Next.js hot-reload continues to work in dev
+
+### Running the Server
+
+```bash
+# Development (with hot-reload)
+npm run dev
+
+# Production (serves pre-built .next/)
+npm run build
+npm start
+```
+
+Both commands run `tsx --env-file=.env server.ts`. The `start` script adds
+`cross-env NODE_ENV=production` to enable production mode.
+
+---
+
+## ZPLS — Zimbabwe Premier Soccer League Data
+
+ZimCast integrates with the **LiveScore API** (`livescore-api.com`) to provide
+real-time ZPLS data including fixtures, live scores, match history, and league standings.
+
+### Data Sources
+
+| Function          | External Endpoint                | Cache Key              | Cache TTL  |
+| ----------------- | -------------------------------- | ---------------------- | ---------- |
+| `getFixtures()`   | `fixtures/list.json`             | `zpls:fixtures:{page}` | 5 minutes  |
+| `getLiveMatches()` | `scores/live.json`              | `zpls:live`            | 30 seconds |
+| `getHistory()`    | `scores/history.json`            | `zpls:history:{page}`  | 5 minutes  |
+| `getStandings()`  | `leagues/table.json`             | `zpls:standings`       | 15 minutes |
+
+### Features
+
+- **Team logo validation** — HEAD-requests logo URLs to verify they are valid images,
+  caches results in Redis hash `zpls:team-logos` (24-hour TTL). Detects CDN 404
+  placeholders where a PNG URL returns SVG content-type.
+- **Fixture score lookup** — `getFixtureScore(fixtureId)` tries live scores first,
+  falls back to history for completed matches.
+- **Admin match import** — When creating matches in the admin dashboard, fixtures
+  from the ZPLS API can be imported directly, pre-filling team names, kickoff times,
+  and linking `zplsFixtureId` for live score display on the match detail page.
+- **Debug endpoint** — `/api/zpls/debug` probes all 4 LiveScore endpoints with
+  timing information and credential validation.
+
+### Procurement Note
+
+Zimbit Solutions must procure a **LiveScore API subscription** from
+https://livescore-api.com with access to:
+- Competition ID `85` (Zimbabwe Premier Soccer League)
+- Endpoints: `fixtures/list`, `scores/live`, `scores/history`, `leagues/table`
+
+---
+
+## Analytics & Personalisation
+
+### Viewing Activity Tracking
+
+The client-side hook `use-track-activity.ts` accumulates watch time in 1-second
+ticks and flushes to the server every 30 seconds. The minimum threshold is 5 seconds
+to avoid recording incidental views.
+
+### User Analytics (`/api/user/analytics`)
+
+Returns a full viewing profile for the authenticated user:
+
+| Metric               | Description                                              |
+| -------------------- | -------------------------------------------------------- |
+| `totalWatchTime`     | Total seconds watched across all content                 |
+| `favoriteCategory`   | Most-watched programme category                          |
+| `categoryBreakdown`  | Category → seconds mapping                               |
+| `topPrograms`        | Top 5 programmes by watch time                           |
+| `engagementScore`    | 0–100 score (target: 20 hours/month = 100)               |
+| `weeklyHeatmap`      | 7×24 matrix of viewing minutes (day × hour)              |
+| `peakTime`           | Hour with most viewing activity                          |
+| `totalMatches`       | Unique live matches watched                              |
+| `recentActivity`     | Last 10 distinct programmes/matches with durations       |
+| `insights`           | Human-readable insight strings (see below)               |
+
+### Personalised Insights
+
+The `insights.ts` module generates contextual messages such as:
+
+- *"You watch mostly sports content (62%)"*
+- *"Your peak viewing time is 20:00 — you're an evening viewer"*
+- *"You've watched 5 live matches this month"*
+- *"Try documentary — expand your viewing horizons!"*
+
+The navbar ticker (`/api/user/insight`) shows time-of-day personalised messages:
+*"You usually watch Sports at this time."* — cached per user per hour (10-minute TTL).
+
+### Admin Analytics (`/api/admin/analytics`)
+
+Platform-wide analytics with demographic filters (category, interest, city, gender,
+date range):
+
+- Category breakdown + weekly heatmap + peak hour
+- User growth timeline (daily, last 30 days)
+- Revenue timeline (daily, last 30 days)
+- Active viewers (unique in last 7 days)
+- Interest distribution + demographic breakdown (by city, by gender)
+- Top 10 programmes by watch time
+- Average session duration
+
+### Chart Components
+
+| Component        | Library   | Used For                                  |
+| ---------------- | --------- | ----------------------------------------- |
+| Doughnut chart   | Chart.js  | Category breakdown with interactive legend|
+| Area chart       | Chart.js  | User growth and revenue timelines         |
+| Radar chart      | Chart.js  | Interest distribution                     |
+| Heatmap          | Custom    | 7×24 viewing intensity grid               |
+| Stats card       | Custom    | Animated count-up KPI cards               |
+
+---
+
 ## Information Required from ZBC
 
 The following information must be obtained from the **Zimbabwe Broadcasting Corporation
@@ -794,32 +1042,98 @@ PAYNOW_RETURN_URL="https://yourdomain.com/payment/success"
 
 ---
 
+## Information Required from LiveScore API (ZPLS)
+
+ZimCast requires a **LiveScore API** subscription to display real-time Zimbabwe
+Premier Soccer League data. This is a **paid third-party service** that Zimbit
+Solutions must procure before launch.
+
+### 1. API Subscription
+
+Register at https://livescore-api.com and purchase a plan that includes:
+
+| Requirement              | Details                                              |
+| ------------------------ | ---------------------------------------------------- |
+| **Competition coverage** | Competition ID `85` — Zimbabwe Premier Soccer League |
+| **Endpoints needed**     | `fixtures/list`, `scores/live`, `scores/history`, `leagues/table` |
+| **Rate limits**          | Sufficient for ~1 request/30 seconds during live matches |
+| **Data format**          | JSON REST API                                        |
+
+### 2. Credentials
+
+| Credential              | Where to Find                                      |
+| ------------------------ | -------------------------------------------------- |
+| **API Key**              | LiveScore Dashboard → API Settings                 |
+| **API Secret**           | LiveScore Dashboard → API Settings                 |
+
+### 3. Environment Variables
+
+```env
+LIVESCORE_API_KEY="<from-livescore-dashboard>"
+LIVESCORE_API_SECRET="<from-livescore-dashboard>"
+```
+
+### 4. What ZimCast Uses This Data For
+
+| Feature               | Data Source              | User Impact                        |
+| --------------------- | ------------------------ | ---------------------------------- |
+| Fixture schedule      | `fixtures/list`          | Upcoming match listings on Sports  |
+| Live match scores     | `scores/live`            | Real-time score on match detail    |
+| Match history         | `scores/history`         | Past results on Sports page        |
+| League standings      | `leagues/table`          | Full league table (W/D/L/Pts)      |
+| Team logos            | CDN URLs in API response | Team badges on match cards         |
+| Admin match import    | `fixtures/list`          | Pre-fill match form from fixture   |
+
+### 5. Fallback Behaviour
+
+If the LiveScore API is unavailable or credentials are not configured:
+- ZPLS sections on the Sports page display empty states
+- Match detail pages show team names without live scores
+- Admin match creation works normally (manual entry instead of import)
+- Core functionality (streaming, payments, EPG) is unaffected
+
+---
+
 ## Admin Dashboard
 
 The admin dashboard is accessible at `/admin` and requires `role: "ADMIN"`.
 
 ### Tabs
 
-| Tab          | Route              | Features                                          |
-| ------------ | ------------------ | ------------------------------------------------- |
-| **Overview** | `/admin`           | KPI cards (revenue, users, matches), recent payments |
-| **Matches**  | `/admin/matches`   | Create, edit, toggle live, delete matches         |
-| **Programs** | `/admin/programs`  | EPG management with date filter, overlap detection|
-| **Users**    | `/admin/users`     | Search users, toggle active, promote/demote admin |
-| **Payments** | `/admin/payments`  | Payment log with status + provider filters        |
+| Tab           | Route              | Features                                          |
+| ------------- | ------------------ | ------------------------------------------------- |
+| **Overview**  | `/admin`           | KPI cards (revenue, users, matches, programmes, blackouts, templates), category breakdown, pending payments alert, recent payments |
+| **Analytics** | `/admin/analytics` | Viewing heatmap, category chart, user growth, revenue timeline, interest radar, demographics, top programmes — with filters (category, city, gender, interest, date range) |
+| **Matches**   | `/admin/matches`   | Create, edit, toggle live, delete matches. ZPLS fixture import. Phase badges (upcoming/pregame/live/postgame/ended) |
+| **Programs**  | `/admin/programs`  | EPG management with date filter, blackout toggle, match linking, overlap detection |
+| **Templates** | `/admin/templates` | Recurring schedule templates with day-of-week picker, start time, duration. Generate programmes from template for a date range (max 60 days) |
+| **Users**     | `/admin/users`     | Paginated user list with search. Detail view with passes, payments, watch stats. Toggle active/deactivate. Role management |
+| **Payments**  | `/admin/payments`  | Paginated payment log with filters (status, provider, city, gender, date range). Summary stats (revenue, avg payment, provider split) |
 
 ### Admin API Routes
 
-| Method   | Route                        | Purpose                              |
-| -------- | ---------------------------- | ------------------------------------ |
-| `GET`    | `/api/admin/stats`           | Dashboard KPIs + recent payments     |
-| `GET`    | `/api/admin/matches`         | List all matches                     |
-| `POST`   | `/api/admin/matches`         | Create new match                     |
-| `PATCH`  | `/api/admin/matches/[id]`    | Update match (toggle live, edit)     |
-| `DELETE` | `/api/admin/matches/[id]`    | Delete match + cascade               |
-| `GET`    | `/api/admin/users`           | List users (with `?search=`)         |
-| `PATCH`  | `/api/admin/users/[id]`      | Toggle role or active status         |
-| `GET`    | `/api/admin/payments`        | List payments (with filters)         |
+| Method   | Route                               | Purpose                              |
+| -------- | ----------------------------------- | ------------------------------------ |
+| `GET`    | `/api/admin/stats`                  | Dashboard KPIs + recent payments     |
+| `GET`    | `/api/admin/analytics`              | Full analytics with demographic filters |
+| `GET`    | `/api/admin/matches`                | List all matches                     |
+| `POST`   | `/api/admin/matches`                | Create match (auto-creates linked SPORTS programme) |
+| `PATCH`  | `/api/admin/matches/[id]`           | Update match (syncs linked programme)|
+| `DELETE` | `/api/admin/matches/[id]`           | Delete match + cascade               |
+| `GET`    | `/api/admin/programs`               | List programmes (with date filter)   |
+| `POST`   | `/api/admin/programs`               | Create programme (with overlap check)|
+| `PATCH`  | `/api/admin/programs/[id]`          | Update programme                     |
+| `DELETE` | `/api/admin/programs/[id]`          | Delete programme                     |
+| `POST`   | `/api/admin/programs/bulk`          | Bulk programme creation              |
+| `POST`   | `/api/admin/programs/import`        | Import programmes                    |
+| `GET`    | `/api/admin/templates`              | List programme templates             |
+| `POST`   | `/api/admin/templates`              | Create template                      |
+| `PATCH`  | `/api/admin/templates/[id]`         | Update template                      |
+| `DELETE` | `/api/admin/templates/[id]`         | Delete template                      |
+| `POST`   | `/api/admin/templates/[id]/generate`| Generate programmes for date range   |
+| `GET`    | `/api/admin/users`                  | List users (with search + filters)   |
+| `PATCH`  | `/api/admin/users/[id]`             | Toggle role or active status         |
+| `GET`    | `/api/admin/payments`               | List payments (with filters + summary)|
 
 ---
 
@@ -827,25 +1141,41 @@ The admin dashboard is accessible at `/admin` and requires `role: "ADMIN"`.
 
 ### How EPG Works in ZimCast
 
-1. **Admin creates programmes** via `/admin/programs` or API
-2. Programmes have: `title`, `category`, `channel`, `startTime`, `endTime`
+1. **Admin creates programmes** via `/admin/programs`, templates, or API
+2. Programmes have: `title`, `category`, `channel`, `startTime`, `endTime`, `blackout`
 3. Sports programmes can be **linked to a Match** for "Watch Now" CTAs
-4. The Live TV page shows:
+4. **Blackout programmes** disable the ZTV stream during that time window (e.g. for
+   exclusive broadcast rights) — the Live TV page shows a countdown instead
+5. The **EPG Scheduler** (`epg-scheduler.ts`) pushes updates to all browsers via
+   WebSocket at exact programme boundaries — no polling required
+6. The Live TV page shows:
    - **EPG Strip** — horizontal timeline of current/upcoming programmes
-   - **Full Schedule** — expandable day view grouped by time
-   - **Category icons** — News 📰, Sports ⚽, Entertainment 🎬, etc.
-5. The Sports page shows a "Today on ZimCast" section with sports-category EPG
+   - **Full Schedule** — expandable accordion day view grouped by time
+   - **Category icons** — 12 categories with unique icons + colour coding
+7. The Sports page shows a "Today on ZimCast" section with sports-category EPG
+
+### Programme Templates
+
+Admins can create **recurring templates** (e.g. "ZTV News at 8" every weekday)
+and generate programmes in bulk for a date range (up to 60 days). Templates store:
+
+- `name`, `title`, `category`, `channel`
+- `startHour` (0–23), `startMinute`, `durationMin`
+- `daysOfWeek[]` (0=Sun, 1=Mon, ... 6=Sat)
+- `blackout` flag, `isActive` toggle
 
 ### EPG API
 
 | Method   | Route                        | Purpose                              |
 | -------- | ---------------------------- | ------------------------------------ |
 | `GET`    | `/api/programs`              | List today's programmes              |
+| `GET`    | `/api/epg/summary`           | Current/next programme + blackout status (WebSocket-published) |
 | `POST`   | `/api/admin/programs`        | Create programme (admin)             |
 | `PATCH`  | `/api/admin/programs/[id]`   | Update programme (admin)             |
 | `DELETE` | `/api/admin/programs/[id]`   | Delete programme (admin)             |
+| `POST`   | `/api/admin/programs/bulk`   | Bulk create programmes (admin)       |
 
-### Categories
+### Categories (12)
 
 | Category        | Icon    | Use Case                              |
 | --------------- | ------- | ------------------------------------- |
@@ -854,7 +1184,13 @@ The admin dashboard is accessible at `/admin` and requires `role: "ADMIN"`.
 | `ENTERTAINMENT` | 🎬      | Dramas, movies, reality TV            |
 | `MUSIC`         | 🎵      | Music shows, concerts                 |
 | `DOCUMENTARY`   | 📚      | Documentaries                         |
-| `OTHER`         | 📺      | Everything else                       |
+| `GAMING`        | 🎮      | Gaming content                        |
+| `TRAVEL`        | ✈️      | Travel shows                          |
+| `FOOD`          | 🍳      | Cooking, food shows                   |
+| `TECH`          | 💻      | Technology content                    |
+| `FASHION`       | 👗      | Fashion, lifestyle                    |
+| `FITNESS`       | 🏋️      | Fitness, wellness                     |
+| `ART`           | 🎨      | Arts, culture                         |
 
 ---
 
@@ -869,9 +1205,16 @@ The admin dashboard is accessible at `/admin` and requires `role: "ADMIN"`.
 | `GET`  | `/api/auth/verify`             | None     | Email verification                  |
 | `POST` | `/api/auth/forgot-password`    | None     | Send reset email                    |
 | `POST` | `/api/auth/reset-password`     | None     | Reset password with token           |
-| `GET`  | `/api/matches`                 | None     | List matches (cached 60s)           |
+| `GET`  | `/api/matches`                 | None     | List matches (`?date=&status=`)     |
 | `GET`  | `/api/matches/[id]`            | None     | Single match details                |
-| `GET`  | `/api/programs`                | None     | Today's EPG                         |
+| `GET`  | `/api/programs`                | None     | Today's EPG (`?date=`)              |
+| `GET`  | `/api/epg/summary`             | None     | Current/next programme + blackout   |
+| `GET`  | `/api/zpls/fixtures`           | None     | ZPLS fixtures (`?page=N`)           |
+| `GET`  | `/api/zpls/live`               | None     | ZPLS live match scores              |
+| `GET`  | `/api/zpls/history`            | None     | ZPLS match history (`?page=N`)      |
+| `GET`  | `/api/zpls/standings`          | None     | ZPLS league table                   |
+| `GET`  | `/api/zpls/debug`              | None     | ZPLS API diagnostics                |
+| `GET`  | `/api/streams/ztv/status`      | None     | ZTV stream availability             |
 
 ### Authenticated API Routes
 
@@ -889,6 +1232,9 @@ The admin dashboard is accessible at `/admin` and requires `role: "ADMIN"`.
 | `GET`    | `/api/user/profile`            | User     | Get user profile                  |
 | `PATCH`  | `/api/user/profile`            | User     | Update profile                    |
 | `GET`    | `/api/user/passes`             | User     | List active match passes          |
+| `GET`    | `/api/user/analytics`          | User     | Viewing analytics dashboard data  |
+| `GET`    | `/api/user/insight`            | User     | Personalised time-of-day insight  |
+| `POST`   | `/api/activity`                | User     | Record viewing activity           |
 
 ---
 
@@ -976,24 +1322,22 @@ docker compose down
 
 ### NPM Scripts
 
-| Script           | Command                                               |
-| ---------------- | ----------------------------------------------------- |
-| `dev`            | Start dev server (webpack mode)                       |
-| `build`          | Generate Prisma client + Next.js production build     |
-| `start`          | Start production server                               |
-| `lint`           | Run ESLint                                            |
-| `test`           | Run Vitest test suite                                 |
-| `test:watch`     | Run Vitest in watch mode                              |
-| `test:coverage`  | Run tests with coverage report                        |
-| `test:unit`      | Run unit tests only                                   |
-| `test:api`       | Run API integration tests only                        |
-| `db:migrate`     | Run Prisma migrations                                 |
-| `db:push`        | Push schema without migration                         |
-| `db:seed`        | Seed database with initial data                       |
-| `db:studio`      | Open Prisma Studio (visual DB browser)                |
-| `redis:start`    | Start local Redis server (Windows)                    |
-| `redis:stop`     | Stop local Redis server                               |
-| `redis:ping`     | Ping Redis to check connectivity                      |
+| Script           | Command                                                      |
+| ---------------- | ------------------------------------------------------------ |
+| `dev`            | `tsx --env-file=.env server.ts` — dev server with HMR         |
+| `build`          | `prisma generate && next build --webpack` — production build  |
+| `start`          | `cross-env NODE_ENV=production tsx --env-file=.env server.ts` |
+| `lint`           | Run ESLint                                                   |
+| `test`           | Run Vitest test suite                                        |
+| `test:watch`     | Run Vitest in watch mode                                     |
+| `test:coverage`  | Run tests with coverage report                               |
+| `db:migrate`     | Run Prisma migrations                                        |
+| `db:push`        | Push schema without migration                                |
+| `db:seed`        | Seed database with initial data                              |
+| `db:studio`      | Open Prisma Studio (visual DB browser)                       |
+| `redis:start`    | Start local Redis server (Windows)                           |
+| `redis:stop`     | Stop local Redis server                                      |
+| `redis:ping`     | Ping Redis to check connectivity                             |
 
 ### Transcoding Script
 
@@ -1043,6 +1387,30 @@ and a `master.m3u8` playlist pointing to all variants.
 - CORS configured via Next.js middleware
 - Redis connections retry up to 3 times then degrade gracefully
 - Environment variables for all secrets (never hardcoded)
+
+---
+
+## Redis Cache Reference
+
+| Key Pattern                   | TTL         | Source                               |
+| ----------------------------- | ----------- | ------------------------------------ |
+| `epg:summary:ZBCTV`           | 30 s        | EPG scheduler + `/api/epg/summary`   |
+| `programs:{YYYY-MM-DD}`       | 60 s        | `/api/programs`                      |
+| `matches:{date}:{status}`     | 30 s        | `/api/matches`                       |
+| `viewers:{channel}`           | 90 s        | Sorted set (auto-expire)             |
+| `zpls:fixtures:{page}`        | 5 min       | `/api/zpls/fixtures`                 |
+| `zpls:live`                   | 30 s        | `/api/zpls/live`                     |
+| `zpls:history:{page}`         | 5 min       | `/api/zpls/history`                  |
+| `zpls:standings`              | 15 min      | `/api/zpls/standings`                |
+| `zpls:team-logos`             | 24 h        | Redis hash — validated logo URLs     |
+| `user:{id}:insight:{hour}`    | 10 min      | `/api/user/insight`                  |
+
+### Pub/Sub Channels
+
+| Channel            | Message Type   | Published By                          |
+| ------------------ | -------------- | ------------------------------------- |
+| `zimcast:epg`      | `epg:update`   | EPG scheduler, EPG summary route, admin programme mutations |
+| `zimcast:matches`  | `match:update` | Admin match mutations                 |
 
 ---
 
