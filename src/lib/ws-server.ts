@@ -18,7 +18,7 @@ export function initWsServer(server: HttpServer) {
   server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     const { pathname } = new URL(req.url ?? "/", `http://${req.headers.host}`);
     if (pathname !== "/ws") {
-      socket.destroy();
+      // Let Next.js (or other handlers) handle non-/ws upgrades (e.g. HMR)
       return;
     }
     wss!.handleUpgrade(req, socket, head, (ws) => {

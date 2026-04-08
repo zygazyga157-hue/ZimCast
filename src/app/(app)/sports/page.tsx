@@ -376,12 +376,12 @@ export default function SportsPage() {
                               </thead>
                               <tbody>
                                 {standings.map((team, i) => (
-                                  <tr key={team.team_id} className={`border-b border-border last:border-0 ${i < 3 ? "bg-primary/[0.02]" : ""}`}>
+                                  <tr key={team.team_id} className={`border-b border-border last:border-0 ${i < 3 ? "bg-primary/2" : ""}`}>
                                     <td className="px-4 py-2.5 font-medium text-muted-foreground">{team.rank}</td>
                                     <td className="px-4 py-2.5">
                                       <div className="flex items-center gap-2">
                                         <TeamLogo src={team.logo} name={team.name} size={20} />
-                                        <span className="font-medium truncate max-w-[140px]">{team.name}</span>
+                                        <span className="font-medium truncate max-w-35">{team.name}</span>
                                       </div>
                                     </td>
                                     <td className="px-4 py-2.5 text-center text-muted-foreground">{team.matches}</td>

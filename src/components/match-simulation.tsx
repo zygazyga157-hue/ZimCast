@@ -182,7 +182,7 @@ export function MatchSimulation() {
   const phase = PHASES[idx];
 
   return (
-    <div ref={ref} className="w-full max-w-[480px]">
+    <div ref={ref} className="w-full max-w-120">
       {/* ── Scoreboard ── */}
       <div className="mb-3 overflow-hidden rounded-xl border border-border bg-black/70 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-2.5">
@@ -429,6 +429,7 @@ export function MatchSimulation() {
             return (
               <g key={`z${i}`}>
                 <motion.circle
+                  initial={{ cx, cy }}
                   animate={{ cx, cy }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                   r={gk ? 10 : 8}
@@ -437,6 +438,7 @@ export function MatchSimulation() {
                   strokeWidth={2}
                 />
                 <motion.text
+                  initial={{ x: cx, y: cy + 4 }}
                   animate={{ x: cx, y: cy + 4 }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                   fill={gk ? ZIM_GK_TEXT : ZIM_TEXT}
@@ -458,6 +460,7 @@ export function MatchSimulation() {
             return (
               <g key={`s${i}`}>
                 <motion.circle
+                  initial={{ cx, cy }}
                   animate={{ cx, cy }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                   r={gk ? 10 : 8}
@@ -466,6 +469,7 @@ export function MatchSimulation() {
                   strokeWidth={2}
                 />
                 <motion.text
+                  initial={{ x: cx, y: cy + 4 }}
                   animate={{ x: cx, y: cy + 4 }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                   fill={gk ? SA_GK_TEXT : SA_TEXT}
@@ -482,6 +486,7 @@ export function MatchSimulation() {
 
           {/* ── Ball ── */}
           <motion.circle
+            initial={{ cx: phase.ball[0], cy: phase.ball[1] }}
             animate={{ cx: phase.ball[0], cy: phase.ball[1] }}
             transition={{ duration: 1.5, ease: "easeOut" }}
             r={7}

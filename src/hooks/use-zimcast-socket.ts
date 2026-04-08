@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useCallback } from "react";
 
 type Handler = (data: unknown) => void;
 
@@ -94,7 +94,9 @@ function subscribe(type: string, handler: Handler): () => void {
  */
 export function useZimcastSocket(type: string, handler: Handler) {
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
 
   const stableHandler = useCallback((data: unknown) => {
     handlerRef.current(data);

@@ -202,7 +202,7 @@ export function Navbar() {
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="gradient-accent absolute inset-x-0 -bottom-[calc(0.5rem+1px)] h-0.5 rounded-full"
+                    className="gradient-accent absolute inset-x-0 -bottom-2.25 h-0.5 rounded-full"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
@@ -347,7 +347,7 @@ export function Navbar() {
             {/* Personal insight — large screens only */}
             {session?.user?.id && insight && (
               <div className="hidden items-center text-xs text-muted-foreground lg:flex">
-                <span className="max-w-[340px] truncate">{insight}</span>
+                <span className="max-w-85 truncate">{insight}</span>
               </div>
             )}
           </div>

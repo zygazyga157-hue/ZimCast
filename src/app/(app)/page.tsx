@@ -135,8 +135,8 @@ export default function HomePage() {
       {/* ===== HERO ===== */}
       <section className="hero-bg relative isolate overflow-hidden">
         {/* glow orbs */}
-        <div className="hero-glow pointer-events-none absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="hero-glow pointer-events-none absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-accent/15 blur-[120px]" />
+        <div className="hero-glow pointer-events-none absolute -left-40 -top-40 h-150 w-150 rounded-full bg-primary/20 blur-[120px]" />
+        <div className="hero-glow pointer-events-none absolute -bottom-40 -right-40 h-125 w-125 rounded-full bg-accent/15 blur-[120px]" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
           <div className="mx-auto max-w-3xl text-center">
@@ -239,7 +239,7 @@ export default function HomePage() {
             <div className="h-4 w-px shrink-0 bg-border" />
 
             {/* Scrolling pills */}
-            <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+            <div className="relative min-w-0 flex-1 overflow-hidden mask-[linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
               <motion.div
                 className="flex w-max items-center gap-4"
                 animate={{ x: ["0%", "-50%"] }}
@@ -765,7 +765,7 @@ export default function HomePage() {
 
       {/* ===== FINAL CTA ===== */}
       <section className="relative isolate overflow-hidden border-t border-border py-20 sm:py-28">
-        <div className="hero-glow pointer-events-none absolute left-1/2 top-0 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[100px]" />
+        <div className="hero-glow pointer-events-none absolute left-1/2 top-0 h-100 w-150 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[100px]" />
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <motion.h2
             initial={{ opacity: 0, y: 16 }}
