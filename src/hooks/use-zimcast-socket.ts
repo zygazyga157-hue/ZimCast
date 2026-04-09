@@ -10,6 +10,8 @@ let ws: WebSocket | null = null;
 let reconnectDelay = 1000;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 const subs = new Map<string, Set<Handler>>();
+let lifecycleInstalled = false;
+let suspended = false;
 
 function getWsUrl() {
   if (typeof window === "undefined") return "";
@@ -19,6 +21,7 @@ function getWsUrl() {
 
 function connect() {
   if (typeof window === "undefined") return;
+  if (suspended) return;
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
   try {
@@ -59,6 +62,8 @@ function connect() {
 }
 
 function scheduleReconnect() {
+  if (suspended) return;
+  if (subs.size === 0) return;
   if (reconnectTimer) return;
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
@@ -67,11 +72,47 @@ function scheduleReconnect() {
   }, reconnectDelay);
 }
 
+function closeSocket(opts?: { suspend?: boolean }) {
+  if (opts?.suspend) suspended = true;
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  try {
+    ws?.close();
+  } catch {
+    // ignore
+  } finally {
+    ws = null;
+  }
+}
+
+function ensureLifecycleHandlers() {
+  if (typeof window === "undefined") return;
+  if (lifecycleInstalled) return;
+  lifecycleInstalled = true;
+
+  // BFCache-friendly: close WebSocket on pagehide so the page can be cached.
+  window.addEventListener("pagehide", () => {
+    closeSocket({ suspend: true });
+  });
+
+  // When coming back (including BFCache restore), allow reconnect if there are subscribers.
+  window.addEventListener("pageshow", () => {
+    suspended = false;
+    if (subs.size > 0) connect();
+  });
+}
+
 function subscribe(type: string, handler: Handler): () => void {
   if (!subs.has(type)) subs.set(type, new Set());
   subs.get(type)!.add(handler);
 
   // Ensure connection is open
+  ensureLifecycleHandlers();
+  if (suspended) suspended = false;
   connect();
 
   return () => {
@@ -79,6 +120,11 @@ function subscribe(type: string, handler: Handler): () => void {
     if (set) {
       set.delete(handler);
       if (set.size === 0) subs.delete(type);
+    }
+
+    // If nothing is listening anymore, close the socket to reduce overhead.
+    if (subs.size === 0) {
+      closeSocket();
     }
   };
 }

@@ -45,7 +45,7 @@ function buildCsp(nonce: string, reqHost: string, isHttps: boolean): string {
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     `script-src-attr 'none'`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'unsafe-inline'`,
     `style-src-attr 'unsafe-inline'`,
     `img-src ${imgSrc.join(" ")}`,
     `font-src 'self' data:`,
@@ -168,5 +168,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.ico$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|.*\\.png$|.*\\.svg$|.*\\.ico$).*)"],
 };

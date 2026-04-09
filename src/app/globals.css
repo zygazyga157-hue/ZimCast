@@ -157,15 +157,22 @@ select option {
   animation: float-slow 14s ease-in-out infinite reverse;
 }
 
-/* Landing page hero animated background */
-@keyframes hero-gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+/* Landing page hero background (composited animation: transform, not background-position) */
+@keyframes hero-pan {
+  0%, 100% { transform: translate3d(-8%, -8%, 0); }
+  50% { transform: translate3d(8%, 8%, 0); }
 }
 .hero-bg {
+  background: #0B0B0B;
+}
+.hero-bg::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
   background: linear-gradient(-45deg, #0B0B0B, #1a0a12, #0B0B0B, #120a1a);
-  background-size: 400% 400%;
-  animation: hero-gradient 15s ease infinite;
+  will-change: transform;
+  animation: hero-pan 18s ease-in-out infinite;
+  z-index: 0;
 }
 
 @keyframes pulse-glow {

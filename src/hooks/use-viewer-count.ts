@@ -70,20 +70,20 @@ export function useViewerCount({
     // Periodic heartbeats
     const interval = setInterval(heartbeat, heartbeatMs);
 
-    // Leave on page hide / unload
+    // Leave on page hide (BFCache-friendly) / when tab is hidden
     const handleVisibilityChange = () => {
       if (document.hidden) leave();
       else heartbeat();
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", leave);
+    window.addEventListener("pagehide", leave);
 
     return () => {
       clearTimeout(initial);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", leave);
+      window.removeEventListener("pagehide", leave);
       leave();
     };
   }, [channel, heartbeatMs, heartbeat, leave]);

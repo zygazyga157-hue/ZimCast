@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import {
   Tv,
@@ -21,7 +22,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/page-transition";
-import { MatchSimulation } from "@/components/match-simulation";
+
+const MatchSimulation = dynamic(
+  () => import("@/components/match-simulation").then((m) => m.MatchSimulation),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-120 rounded-xl border border-border bg-card/40 p-6 text-sm text-muted-foreground">
+        Loading match replay…
+      </div>
+    ),
+  },
+);
 
 /* ---------- data ---------- */
 
@@ -119,6 +131,8 @@ const fadeUp = {
 
 export default function HomePage() {
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [showSimulation, setShowSimulation] = useState(false);
+  const simMountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetch("/api/matches?status=live")
@@ -130,15 +144,33 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const el = simMountRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setShowSimulation(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: "250px 0px" },
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <PageTransition>
       {/* ===== HERO ===== */}
       <section className="hero-bg relative isolate overflow-hidden">
         {/* glow orbs */}
-        <div className="hero-glow pointer-events-none absolute -left-40 -top-40 h-150 w-150 rounded-full bg-primary/20 blur-[120px]" />
-        <div className="hero-glow pointer-events-none absolute -bottom-40 -right-40 h-125 w-125 rounded-full bg-accent/15 blur-[120px]" />
+        <div className="hero-glow pointer-events-none absolute -left-40 -top-40 z-0 h-150 w-150 rounded-full bg-primary/20 blur-[120px]" />
+        <div className="hero-glow pointer-events-none absolute -bottom-40 -right-40 z-0 h-125 w-125 rounded-full bg-accent/15 blur-[120px]" />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-3xl text-center">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -439,7 +471,15 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="flex justify-center"
             >
-              <MatchSimulation />
+              <div ref={simMountRef}>
+                {showSimulation ? (
+                  <MatchSimulation />
+                ) : (
+                  <div className="w-full max-w-120 rounded-xl border border-border bg-card/40 p-6 text-sm text-muted-foreground">
+                    Match replay loads when you scroll here…
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         </div>

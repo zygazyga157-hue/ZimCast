@@ -8,14 +8,10 @@
   "theme_color": "#FF416C",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/zbc-logo.png",
+      "sizes": "224x130",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
