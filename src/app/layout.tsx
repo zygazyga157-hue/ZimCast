@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { SessionProvider } from "next-auth/react";
@@ -17,11 +18,13 @@ export const viewport: Viewport = {
   themeColor: "#FF416C",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? "";
+
   return (
     <html
       lang="en"
@@ -29,7 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <SessionProvider>{children}</SessionProvider>
-        <Toaster theme="dark" position="top-right" richColors closeButton />
+        <Toaster theme="dark" position="top-right" richColors closeButton nonce={nonce} />
         <RegisterSW />
       </body>
     </html>
