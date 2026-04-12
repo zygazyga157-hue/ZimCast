@@ -1,0 +1,35 @@
+# Node artifacts
+node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+npm-debug.log
+.pnpm-debug.log
+
+# Next/Build artifacts
+.next
+.next/**
+dist
+build
+coverage
+
+# Environment and secrets (do NOT send secrets in build context)
+.env
+.env.*
+
+# VCS and editor
+.git
+.gitignore
+.vscode
+.DS_Store
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+# Misc
+*.sqlite
+*.db
+__pycache__/
+*.pyc

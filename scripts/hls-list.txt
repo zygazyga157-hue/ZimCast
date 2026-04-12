@@ -1,0 +1,10 @@
+https://kviedt2.lls.pbs.org/kviedt2-hls.m3u8
+https://dai.google.com/linear/hls/event/JUr94WL2QAiVpGNHY5n5dA/master.m3u8
+https://live-dangal.akamaized.net/liveabr/playlist.m3u8
+https://d1axml5ozykh3g.cloudfront.net/live/omroepwest/tv/index.m3u8
+https://canaleducacao-stream.ebc.com.br/index.m3u8
+https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index.m3u8
+https://citynewsregional.akamaized.net/hls/live/1024053/Regional_Live_8/master.m3u8
+https://tv8-live.daioncdn.net/tv8/tv8.m3u8
+https://sportsgrid-tribal.amagi.tv/playlist.m3u8
+https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/master.m3u8

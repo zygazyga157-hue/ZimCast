@@ -1,12 +1,21 @@
 FROM node:20-alpine AS base
+# Ensure a modern npm is available to properly honor omit/optional flags
+RUN npm install -g npm@latest
 
 # Install dependencies only when needed
 FROM base AS deps
+# Ensure npm skips optional/platform-specific packages (e.g. win32 swc) during container installs
+ENV NPM_CONFIG_OPTIONAL=false
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && cp -R node_modules /prod_node_modules
-RUN npm ci
+# Copy only package.json so we can generate a Linux-native lockfile inside the container
+COPY package.json ./
+# Generate a package-lock.json inside the Linux build container (avoids host-win32 artifacts)
+RUN npm install --package-lock-only
+# Install production deps using the generated lockfile and skip optional/platform-specific packages
+RUN npm ci --omit=dev --omit=optional && cp -R node_modules /prod_node_modules
+# Install full dependency tree for the builder (still skipping optional packages)
+RUN npm ci --omit=optional
 
 # Build the app
 FROM base AS builder

@@ -5,20 +5,39 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/zimcast?schema=public
-      - REDIS_URL=redis://redis:6379
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
-      - NEXTAUTH_URL=http://localhost:3000
-      - AUTH_TRUST_HOST=true
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - AUTH_TRUST_HOST=${AUTH_TRUST_HOST}
       - MEDIAMTX_API_URL=http://mediamtx:9997
       - STREAM_BASE_URL=http://mediamtx:8888
-      - NEXT_PUBLIC_STREAM_BASE_URL=${NEXT_PUBLIC_STREAM_BASE_URL:-http://localhost:8888}
-      - STREAM_TOKEN_SECRET=${STREAM_TOKEN_SECRET:-dev-stream-secret-change-in-production}
-      - PAYNOW_INTEGRATION_ID=${PAYNOW_INTEGRATION_ID:-}
-      - PAYNOW_INTEGRATION_KEY=${PAYNOW_INTEGRATION_KEY:-}
-      - PAYNOW_RESULT_URL=http://localhost:3000/api/payments/webhook
-      - PAYNOW_RETURN_URL=http://localhost:3000/payment/success
+      - NEXT_PUBLIC_STREAM_BASE_URL=${NEXT_PUBLIC_STREAM_BASE_URL}
+      - STREAM_TOKEN_SECRET=${STREAM_TOKEN_SECRET}
+      - PAYNOW_INTEGRATION_ID=${PAYNOW_INTEGRATION_ID}
+      - PAYNOW_INTEGRATION_KEY=${PAYNOW_INTEGRATION_KEY}
+      - PAYNOW_RESULT_URL=${PAYNOW_RESULT_URL}
+      - PAYNOW_RETURN_URL=${PAYNOW_RETURN_URL}
+      # SMTP (from .env)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      # LiveScore API
+      - LIVESCORE_API_KEY=${LIVESCORE_API_KEY}
+      - LIVESCORE_API_SECRET=${LIVESCORE_API_SECRET}
+      # Media S3 / R2
+      - MEDIA_S3_ENDPOINT=${MEDIA_S3_ENDPOINT}
+      - MEDIA_S3_REGION=${MEDIA_S3_REGION}
+      - MEDIA_S3_BUCKET=${MEDIA_S3_BUCKET}
+      - MEDIA_S3_ACCESS_KEY_ID=${MEDIA_S3_ACCESS_KEY_ID}
+      - MEDIA_S3_SECRET_ACCESS_KEY=${MEDIA_S3_SECRET_ACCESS_KEY}
+      - MEDIA_PUBLIC_BASE_URL=${MEDIA_PUBLIC_BASE_URL}
+    platform: "windows/amd64"
     depends_on:
       db:
         condition: service_healthy
@@ -29,11 +48,11 @@ services:
   db:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=zimcast
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-zimcast}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -65,6 +84,8 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    env_file:
+      - .env
 
 volumes:
   pgdata:
