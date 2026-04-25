@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx --env-file=.env server.ts",
-    "build": "npx prisma migrate deploy && npx prisma generate && next build --webpack",
+    "build": "npx prisma generate && npx prisma db push && next build --webpack",
     "start": "cross-env NODE_ENV=production tsx --env-file=.env server.ts",
     "lint": "eslint",
     "db:migrate": "npx prisma migrate dev",
