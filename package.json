@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx --env-file=.env server.ts",
-    "build": "npx prisma generate && next build --webpack",
+    "build": "npx prisma migrate deploy && npx prisma generate && next build --webpack",
     "start": "cross-env NODE_ENV=production tsx --env-file=.env server.ts",
     "lint": "eslint",
     "db:migrate": "npx prisma migrate dev",
@@ -15,8 +15,6 @@
     "redis:stop": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe shutdown nosave",
     "redis:ping": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe ping",
     "postinstall": "npx prisma generate && node scripts/fix-base-ui-types.mjs",
-    "migrate:deploy": "npx prisma migrate deploy",
-    "migrate:push": "npx prisma db push",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
