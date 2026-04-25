@@ -1,0 +1,38 @@
+name: Prisma Migrations
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Deploy Prisma Migrations
+    runs-on: ubuntu-latest
+    env:
+      # Ensure you set this secret in your Git provider: DATABASE_URL
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Deploy migrations (or db push if no migrations)
+        run: |
+          if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations)" ]; then
+            echo "Migrations found — running prisma migrate deploy"
+            npx prisma migrate deploy
+          else
+            echo "No migrations found — running prisma db push (creates tables from schema)"
+            npx prisma db push --schema=prisma/schema.prisma
+          fi

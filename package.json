@@ -15,6 +15,8 @@
     "redis:stop": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe shutdown nosave",
     "redis:ping": "Redis-8.6.2-Windows-x64-cygwin-with-Service\\redis-cli.exe ping",
     "postinstall": "npx prisma generate && node scripts/fix-base-ui-types.mjs",
+    "migrate:deploy": "npx prisma migrate deploy",
+    "migrate:push": "npx prisma db push",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
