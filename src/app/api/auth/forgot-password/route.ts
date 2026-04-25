@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/mail";
 import { handleApiError } from "@/lib/errors";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
         data: { resetToken, resetTokenExpiry },
       });
 
-      sendPasswordResetEmail(email, resetToken).catch((err) =>
+      const origin = getPublicOrigin(req);
+      sendPasswordResetEmail(email, resetToken, origin).catch((err) =>
         console.error("Failed to send password reset email:", err)
       );
     }

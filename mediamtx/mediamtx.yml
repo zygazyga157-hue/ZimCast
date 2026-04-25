@@ -24,7 +24,12 @@ udpMaxPayloadSize: 1452
 ###############################################
 authMethod: http
 # In Docker Compose, MediaMTX must reach the Next.js app over the service name.
-authHTTPAddress: http://app:3000/api/streams/auth-hook
+# When MediaMTX runs inside the same Docker Compose network the service
+# name `app` resolves correctly. If you run MediaMTX standalone (docker
+# run) or need to reach the host-bound Next.js server, use
+# host.docker.internal which resolves to the host from Docker Desktop.
+# Change back to `http://app:3000/...` when running via `docker compose`.
+authHTTPAddress: http://host.docker.internal:3000/api/streams/auth-hook
 # Exclude API/metrics from auth (localhost-only anyway)
 authHTTPExclude:
   - action: api
@@ -131,6 +136,13 @@ paths:
     sourceOnDemand: true
     sourceOnDemandStartTimeout: 15s
     sourceOnDemandCloseAfter: 30s
+
+  match_demo_redbulltv3:
+    source: https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
 
   # ─── Catch-all for dynamically added matches ─
   # Any path starting with "match_" that isn't

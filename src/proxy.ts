@@ -125,6 +125,7 @@ export default auth((req) => {
   // ── Public routes — no auth required ─────────────────────────────
   const publicPaths = [
     "/api/auth",
+    "/api/streams/auth-hook",
     "/api/health",
     "/api/matches",
     "/api/payments/webhook",

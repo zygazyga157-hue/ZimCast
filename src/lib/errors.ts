@@ -21,6 +21,16 @@ export function handleApiError(error: unknown, label: string) {
     );
   }
 
+  // In development, return the error message and stack to ease debugging.
+  if (process.env.NODE_ENV !== "production") {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    return NextResponse.json(
+      { error: message, code: "INTERNAL_ERROR", stack },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json(
     { error: "Internal server error", code: "INTERNAL_ERROR" },
     { status: 500 },

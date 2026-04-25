@@ -24,5 +24,8 @@ app.prepare().then(() => {
   server.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> WebSocket on ws://${hostname}:${port}/ws`);
+    if (hostname === "0.0.0.0") {
+      console.log(`> Local: http://localhost:${port}`);
+    }
   });
 });

@@ -1,0 +1,56 @@
+
+## Demo: Add a “public sports” stream to MediaMTX as a new match path
+
+### Summary
+Add a new MediaMTX path that **pulls from a public HLS source**, name it like a match (`match_…`) so your existing auth-hook allows reads, then test it via HLS with a generated token.
+
+### 1) Pick demo stream + path ID
+- **Path ID (use in app + DB as `streamKey`):** `match_demo_redbulltv`
+- **Public HLS source (example):**
+```txt
+https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
+```
+Notes:
+- This is commonly referenced as “Red Bull TV” and is sports-oriented.
+- Use it for **internal demo**; do not ship/redistribute without explicit rights.
+
+### 2) Update `mediamtx/mediamtx.yml`
+Add this under `paths:` alongside your existing match paths:
+
+```yml
+  match_demo_redbulltv:
+    source: https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+```
+
+Why `match_` prefix matters:
+- Your `authHTTPAddress` calls `/api/streams/auth-hook`, which only allows reads for `ztv` and `match_*` paths.
+
+### 3) Restart MediaMTX
+- Restart whichever process runs MediaMTX (Docker container or `mediamtx.exe`).
+
+### 4) Test playback (direct HLS)
+1) Generate a token for that path:
+```powershell
+node scripts/gen-stream-token.js match_demo_redbulltv --user pitchdemo --expiry 3600
+```
+
+2) Open the HLS URL in VLC (or in-browser HLS player that supports query strings):
+```txt
+http://localhost:8888/match_demo_redbulltv/index.m3u8?token=PASTE_TOKEN_HERE
+```
+
+### 5) (Optional) Make it show up in your app UI
+- Create a Match in Admin with:
+  - `streamKey = match_demo_redbulltv`
+  - set kickoff time to “now-ish” for the pitch
+- Ensure your test user can access it (however you normally create passes / test access).
+
+### Troubleshooting checklist
+- If MediaMTX can’t reach your app auth-hook:
+  - When running MediaMTX **outside Docker**, `authHTTPAddress` should be `http://localhost:3000/api/streams/auth-hook`.
+  - When running **inside Docker Compose**, it should use your Compose service name (`http://app:3000/api/streams/auth-hook`) or `host.docker.internal` depending on your setup (your file already documents this).
+- If upstream HLS is geo-blocked in your location, pick another **licensed** HLS source and replace only the `source:` URL.
+

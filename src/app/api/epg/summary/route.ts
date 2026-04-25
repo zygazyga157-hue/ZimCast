@@ -99,7 +99,9 @@ export async function GET() {
       });
 
       nextProgram = nextNonSports ?? null;
-      resumesAt = (nextNonSports?.startTime ?? sportsProgram.endTime).toISOString();
+      // Blackout ends when the SPORTS coverage window ends. Next non-blackout
+      // program can be much later and should not drive the countdown.
+      resumesAt = sportsProgram.endTime.toISOString();
     } else {
       currentProgram = await prisma.program.findFirst({
         where: {
@@ -143,4 +145,3 @@ export async function GET() {
     return handleApiError(error, "EPG summary error");
   }
 }
-

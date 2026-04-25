@@ -18,6 +18,7 @@ export default defineConfig({
           name: "unit",
           include: ["tests/unit/**/*.test.ts"],
           environment: "node",
+          setupFiles: ["./tests/setup.ts"],
         },
       },
       {
@@ -26,6 +27,7 @@ export default defineConfig({
           name: "api",
           include: ["tests/api/**/*.test.ts"],
           environment: "node",
+          setupFiles: ["./tests/setup.ts"],
         },
       },
       {
@@ -34,6 +36,7 @@ export default defineConfig({
           name: "db",
           include: ["tests/db/**/*.test.ts"],
           environment: "node",
+          setupFiles: ["./tests/setup.ts"],
         },
       },
     ],

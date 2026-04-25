@@ -37,7 +37,6 @@ services:
       - MEDIA_S3_ACCESS_KEY_ID=${MEDIA_S3_ACCESS_KEY_ID}
       - MEDIA_S3_SECRET_ACCESS_KEY=${MEDIA_S3_SECRET_ACCESS_KEY}
       - MEDIA_PUBLIC_BASE_URL=${MEDIA_PUBLIC_BASE_URL}
-    platform: "windows/amd64"
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +45,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     ports:
       - "5433:5432"
     environment:

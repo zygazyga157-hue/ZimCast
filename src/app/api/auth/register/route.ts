@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/mail";
 import { handleApiError } from "@/lib/errors";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +71,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Send verification email (non-blocking — don't fail registration if email fails)
-    sendVerificationEmail(email, verifyToken).catch((err) =>
+    const origin = getPublicOrigin(req);
+    sendVerificationEmail(email, verifyToken, origin).catch((err) =>
       console.error("Failed to send verification email:", err)
     );
 

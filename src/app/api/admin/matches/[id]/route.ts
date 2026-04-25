@@ -48,7 +48,7 @@ export async function PATCH(
         match.homeTeam,
         match.awayTeam,
         new Date(match.kickoff),
-        match.streamKey
+        "ZBCTV"
       );
       programWarning = result.warning ?? undefined;
     }

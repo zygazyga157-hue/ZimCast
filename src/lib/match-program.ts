@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createProgramSafe, OverlapError, invalidateProgramCache } from "@/lib/program";
 
 const PREGAME_BUFFER_MS = 15 * 60 * 1000;
-const COVERAGE_DURATION_MS = 210 * 60 * 1000; // 15m pregame + 150m match + 60m postgame
+const COVERAGE_DURATION_MS = 210 * 60 * 1000; // match + postgame (pregame handled separately)
 
 interface AutoProgramResult {
   programId: string | null;
@@ -22,7 +22,7 @@ export async function createMatchProgram(
   channel = "ZBCTV",
 ): Promise<AutoProgramResult> {
   const startTime = new Date(kickoff.getTime() - PREGAME_BUFFER_MS);
-  const endTime = new Date(kickoff.getTime() + COVERAGE_DURATION_MS - PREGAME_BUFFER_MS);
+  const endTime = new Date(kickoff.getTime() + COVERAGE_DURATION_MS);
 
   try {
     const { programId } = await createProgramSafe({
@@ -60,7 +60,7 @@ export async function updateMatchProgram(
   channel = "ZBCTV",
 ): Promise<AutoProgramResult> {
   const startTime = new Date(newKickoff.getTime() - PREGAME_BUFFER_MS);
-  const endTime = new Date(newKickoff.getTime() + COVERAGE_DURATION_MS - PREGAME_BUFFER_MS);
+  const endTime = new Date(newKickoff.getTime() + COVERAGE_DURATION_MS);
 
   // Find existing linked SPORTS program
   const existing = await prisma.program.findFirst({

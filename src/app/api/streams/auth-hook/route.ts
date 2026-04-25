@@ -10,6 +10,8 @@ import { handleApiError } from "@/lib/errors";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    // Debug: log incoming auth-hook requests (remove after troubleshooting)
+    console.log('[auth-hook] incoming body:', JSON.stringify(body));
     const { action, path, query } = body;
 
     // Allow publish actions (from SRT sources)
@@ -20,12 +22,14 @@ export async function POST(req: NextRequest) {
     // For read actions, validate the token
     if (action === "read") {
       const token = query?.token || new URLSearchParams(query).get("token");
+      console.log('[auth-hook] token present:', !!token);
 
       if (!token) {
         return NextResponse.json({ error: "No token" }, { status: 401 });
       }
 
       const payload = verifyStreamToken(token);
+      console.log('[auth-hook] token verification result:', payload ? 'ok' : 'invalid');
       if (!payload) {
         return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
       }

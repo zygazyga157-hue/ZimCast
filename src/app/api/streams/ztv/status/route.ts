@@ -10,6 +10,7 @@ export async function GET() {
     const sportsProgram = await prisma.program.findFirst({
       where: {
         blackout: true,
+        category: "SPORTS",
         startTime: { lte: now },
         endTime: { gt: now },
       },
@@ -28,20 +29,13 @@ export async function GET() {
     });
 
     if (sportsProgram) {
-      // Find next non-blackout program to determine when Live TV resumes
-      const nextNonSports = await prisma.program.findFirst({
-        where: {
-          startTime: { gte: sportsProgram.endTime },
-          blackout: { not: true },
-        },
-        orderBy: { startTime: "asc" },
-      });
-
       return NextResponse.json({
         available: false,
         currentProgram: sportsProgram,
         blackoutMatch: sportsProgram.match,
-        resumesAt: nextNonSports?.startTime?.toISOString() ?? sportsProgram.endTime.toISOString(),
+        // Blackout ends when the SPORTS coverage window ends (not when the next
+        // non-blackout program begins, which could be many hours later).
+        resumesAt: sportsProgram.endTime.toISOString(),
       });
     }
 

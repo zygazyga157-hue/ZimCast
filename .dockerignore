@@ -1,6 +1,5 @@
 # Node artifacts
 node_modules
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 npm-debug.log
@@ -12,10 +11,6 @@ npm-debug.log
 dist
 build
 coverage
-
-# Environment and secrets (do NOT send secrets in build context)
-.env
-.env.*
 
 # VCS and editor
 .git

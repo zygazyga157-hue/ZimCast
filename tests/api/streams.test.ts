@@ -8,6 +8,7 @@ import {
   createMatchPass,
   resetCounters,
 } from "../helpers/factories";
+import { prisma } from "@/lib/prisma";
 import { generateStreamToken } from "../../src/lib/tokens";
 
 beforeAll(async () => {
@@ -112,6 +113,44 @@ describe("GET /api/streams/ztv/token", () => {
     const [data] = (res.body.token as string).split(".");
     const payload = JSON.parse(Buffer.from(data, "base64url").toString());
     expect(payload.path).toBe("ztv");
+  });
+});
+
+describe("GET /api/streams/ztv/status", () => {
+  it("uses the blackout SPORTS program endTime as resumesAt (not the next program start)", async () => {
+    const match = await createMatch({ kickoff: new Date() });
+
+    const now = Date.now();
+    const blackoutEnd = new Date(now + 2 * 60 * 60 * 1000);
+
+    await prisma.program.create({
+      data: {
+        channel: "ZBCTV",
+        title: `${match.homeTeam} vs ${match.awayTeam}`,
+        category: "SPORTS",
+        blackout: true,
+        startTime: new Date(now - 10 * 60 * 1000),
+        endTime: blackoutEnd,
+        matchId: match.id,
+      },
+    });
+
+    // Create a non-blackout program tomorrow to ensure it doesn't affect resumesAt.
+    await prisma.program.create({
+      data: {
+        channel: "ZBCTV",
+        title: "Morning News",
+        category: "NEWS",
+        blackout: false,
+        startTime: new Date(now + 24 * 60 * 60 * 1000),
+        endTime: new Date(now + 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      },
+    });
+
+    const res = await api("GET", "/api/streams/ztv/status");
+    expect(res.status).toBe(200);
+    expect(res.body.available).toBe(false);
+    expect(new Date(res.body.resumesAt).toISOString()).toBe(blackoutEnd.toISOString());
   });
 });
 

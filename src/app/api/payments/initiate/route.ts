@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { initiatePaynowPayment, initiatePaynowMobile } from "@/lib/paynow";
 import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
+import { choosePublicOrigin } from "@/lib/public-origin";
 
 export async function POST(req: Request) {
   try {
@@ -107,10 +108,7 @@ export async function POST(req: Request) {
       });
     } else {
       // PAYNOW web redirect
-      const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL ??
-        process.env.NEXTAUTH_URL ??
-        "http://localhost:3000";
+      const baseUrl = choosePublicOrigin(new URL(req.url).origin);
       paynowResponse = await initiatePaynowPayment({
         reference: payment.id,
         description,

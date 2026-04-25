@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       homeTeam,
       awayTeam,
       new Date(kickoff),
-      streamKey
+      "ZBCTV"
     );
 
     return NextResponse.json(
