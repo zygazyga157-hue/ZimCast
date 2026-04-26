@@ -23,13 +23,9 @@ udpMaxPayloadSize: 1452
 # is validated against the ZimCast token endpoint.
 ###############################################
 authMethod: http
-# In Docker Compose, MediaMTX must reach the Next.js app over the service name.
-# When MediaMTX runs inside the same Docker Compose network the service
-# name `app` resolves correctly. If you run MediaMTX standalone (docker
-# run) or need to reach the host-bound Next.js server, use
-# host.docker.internal which resolves to the host from Docker Desktop.
-# Change back to `http://app:3000/...` when running via `docker compose`.
-authHTTPAddress: http://app:3000/api/streams/auth-hook
+# In production we point MediaMTX at the public Vercel domain.
+# For local Docker Compose development, use `http://app:3000/...`.
+authHTTPAddress: https://zim-cast.vercel.app/api/streams/auth-hook
 # Exclude API/metrics from auth (localhost-only anyway)
 authHTTPExclude:
   - action: api
