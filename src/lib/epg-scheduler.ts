@@ -40,7 +40,9 @@ async function buildSummary() {
       orderBy: { startTime: "asc" },
     });
     nextProgram = nextNonSports ?? null;
-    resumesAt = (nextNonSports?.startTime ?? sportsProgram.endTime).toISOString();
+    // Blackout ends when the SPORTS coverage window ends, regardless of when the next
+    // non-blackout program begins.
+    resumesAt = sportsProgram.endTime.toISOString();
   } else {
     currentProgram = await prisma.program.findFirst({
       where: { channel: CHANNEL, startTime: { lte: now }, endTime: { gt: now } },

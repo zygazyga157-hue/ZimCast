@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
 import { createMatchProgram } from "@/lib/match-program";
+import { isNaiveLocalDateTimeString } from "@/lib/cat-time";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +19,13 @@ export async function POST(req: NextRequest) {
     if (!homeTeam || !awayTeam || !kickoff || price == null || !streamKey) {
       return NextResponse.json(
         { error: "homeTeam, awayTeam, kickoff, price, and streamKey are required" },
+        { status: 400 }
+      );
+    }
+
+    if (isNaiveLocalDateTimeString(kickoff)) {
+      return NextResponse.json(
+        { error: "kickoff must include timezone (send an ISO string ending in Z or with an offset)" },
         { status: 400 }
       );
     }

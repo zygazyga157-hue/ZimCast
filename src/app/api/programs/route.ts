@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
+import { catDateKeyFromNow, catDayBounds } from "@/lib/cat-time";
 
 const CACHE_TTL_SECONDS = 60;
 
@@ -10,8 +11,7 @@ export async function GET(req: NextRequest) {
     const dateParam = req.nextUrl.searchParams.get("date");
     const now = new Date();
 
-    const targetDate = dateParam ? new Date(dateParam) : now;
-    const dateKey = targetDate.toISOString().slice(0, 10);
+    const dateKey = dateParam ?? catDateKeyFromNow(now);
     const cacheKey = `programs:${dateKey}`;
 
     try {
@@ -21,10 +21,13 @@ export async function GET(req: NextRequest) {
       // Cache failures are non-fatal
     }
 
-    const dayStart = new Date(targetDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(targetDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    let dayStart: Date;
+    let dayEnd: Date;
+    try {
+      ({ start: dayStart, end: dayEnd } = catDayBounds(dateKey));
+    } catch {
+      return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+    }
 
     const programs = await prisma.program.findMany({
       where: {

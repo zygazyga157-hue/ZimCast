@@ -90,6 +90,11 @@ interface ZplsStanding {
   points: number;
 }
 
+function localDateKey() {
+  // YYYY-MM-DD in the user's local timezone (avoids UTC midnight skew)
+  return new Date().toLocaleDateString("en-CA");
+}
+
 export default function SportsPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [epgSports, setEpgSports] = useState<EpgProgram[]>([]);
@@ -101,7 +106,7 @@ export default function SportsPage() {
   const loadData = useCallback(async () => {
     try {
       const [matchData, epgData] = await Promise.all([
-        api<{ matches: Match[] }>(`/api/matches?date=${new Date().toISOString().slice(0, 10)}`),
+        api<{ matches: Match[] }>(`/api/matches?date=${localDateKey()}`),
         api<{ programs: EpgProgram[] }>("/api/programs"),
       ]);
       setMatches(matchData.matches ?? []);

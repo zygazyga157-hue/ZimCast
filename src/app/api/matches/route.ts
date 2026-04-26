@@ -4,6 +4,7 @@ import { redis } from "@/lib/redis";
 import { computePassWindow } from "@/lib/match-window";
 import { handleApiError } from "@/lib/errors";
 import { getFixtureScore } from "@/lib/zpls";
+import { catDateKeyFromNow, catDayBounds } from "@/lib/cat-time";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,12 +13,14 @@ export async function GET(req: NextRequest) {
     const dateParam = searchParams.get("date"); // YYYY-MM-DD, defaults to today
 
     // Resolve target date
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
-    const dayStart = new Date(targetDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(targetDate);
-    dayEnd.setHours(23, 59, 59, 999);
-    const dateKey = dayStart.toISOString().slice(0, 10);
+    const dateKey = dateParam ?? catDateKeyFromNow();
+    let dayStart: Date;
+    let dayEnd: Date;
+    try {
+      ({ start: dayStart, end: dayEnd } = catDayBounds(dateKey));
+    } catch {
+      return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+    }
 
     // Check cache
     const cacheKey = `matches:${dateKey}:${status || "all"}`;

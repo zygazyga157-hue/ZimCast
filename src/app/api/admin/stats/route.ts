@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
+import { catDateKeyFromNow, catDayBounds } from "@/lib/cat-time";
 
 export async function GET() {
   try {
@@ -14,6 +15,7 @@ export async function GET() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const now = new Date();
+    const { start: dayStart, end: dayEnd } = catDayBounds(catDateKeyFromNow(now));
 
     const [
       totalUsers,
@@ -51,8 +53,8 @@ export async function GET() {
       prisma.program.count(),
       prisma.program.count({
         where: {
-          startTime: { gte: new Date(now.toISOString().slice(0, 10) + "T00:00:00Z") },
-          endTime: { lte: new Date(now.toISOString().slice(0, 10) + "T23:59:59Z") },
+          startTime: { gte: dayStart },
+          endTime: { lte: dayEnd },
         },
       }),
       prisma.program.count({ where: { blackout: true, endTime: { gte: now } } }),

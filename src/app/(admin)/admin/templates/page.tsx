@@ -60,6 +60,10 @@ function formatTime(h: number, m: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function localDateKey(d: Date) {
+  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+}
+
 export default function AdminTemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,8 +198,8 @@ export default function AdminTemplatesPage() {
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 6);
-    setGenStartDate(today.toISOString().slice(0, 10));
-    setGenEndDate(nextWeek.toISOString().slice(0, 10));
+    setGenStartDate(localDateKey(today));
+    setGenEndDate(localDateKey(nextWeek));
     setGenResult(null);
     setGenerateId(id);
   }

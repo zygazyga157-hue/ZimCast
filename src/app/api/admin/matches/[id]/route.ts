@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
 import { updateMatchProgram } from "@/lib/match-program";
+import { isNaiveLocalDateTimeString } from "@/lib/cat-time";
 
 export async function PATCH(
   req: NextRequest,
@@ -17,6 +18,13 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
+
+    if (body.kickoff !== undefined && isNaiveLocalDateTimeString(body.kickoff)) {
+      return NextResponse.json(
+        { error: "kickoff must include timezone (send an ISO string ending in Z or with an offset)" },
+        { status: 400 }
+      );
+    }
 
     const existing = await prisma.match.findUnique({ where: { id } });
     if (!existing) {

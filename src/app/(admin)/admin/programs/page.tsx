@@ -69,12 +69,26 @@ const emptyForm = {
   blackout: false,
 };
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function isoToLocalInputValue(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function localDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
 export default function AdminProgramsPage() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState(
-    new Date().toISOString().slice(0, 10)
+    localDateKey()
   );
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,8 +136,8 @@ export default function AdminProgramsPage() {
       title: p.title,
       description: p.description ?? "",
       category: p.category,
-      startTime: p.startTime.slice(0, 16),
-      endTime: p.endTime.slice(0, 16),
+      startTime: isoToLocalInputValue(p.startTime),
+      endTime: isoToLocalInputValue(p.endTime),
       matchId: p.matchId ?? "",
       blackout: p.blackout,
     });
@@ -143,6 +157,8 @@ export default function AdminProgramsPage() {
     try {
       const body = {
         ...form,
+        startTime: new Date(form.startTime).toISOString(),
+        endTime: new Date(form.endTime).toISOString(),
         matchId: form.matchId || null,
         description: form.description || null,
       };

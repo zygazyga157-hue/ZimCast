@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
 import { invalidateProgramCache } from "@/lib/program";
+import { isNaiveLocalDateTimeString } from "@/lib/cat-time";
 
 export async function PATCH(
   req: NextRequest,
@@ -18,6 +19,19 @@ export async function PATCH(
     const body = await req.json();
     const allowedFields = ["channel", "title", "description", "category", "startTime", "endTime", "isLive", "blackout", "matchId"];
     const data: Record<string, unknown> = {};
+
+    if (body.startTime !== undefined && isNaiveLocalDateTimeString(body.startTime)) {
+      return NextResponse.json(
+        { error: "startTime must include timezone (send an ISO string ending in Z or with an offset)" },
+        { status: 400 }
+      );
+    }
+    if (body.endTime !== undefined && isNaiveLocalDateTimeString(body.endTime)) {
+      return NextResponse.json(
+        { error: "endTime must include timezone (send an ISO string ending in Z or with an offset)" },
+        { status: 400 }
+      );
+    }
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {

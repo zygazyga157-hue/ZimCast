@@ -41,6 +41,22 @@ interface ZplsFixture {
   round: string;
 }
 
+interface ConflictProgram {
+  id: string;
+  title: string;
+  category: string;
+  blackout: boolean;
+  matchId: string | null;
+  startTime: string;
+  endTime: string;
+}
+
+interface ConflictSummary {
+  match: { id: string; title: string; kickoff: string };
+  window: { start: string; end: string };
+  conflicts: ConflictProgram[];
+}
+
 const emptyForm = {
   homeTeam: "",
   awayTeam: "",
@@ -50,6 +66,15 @@ const emptyForm = {
   zplsFixtureId: "",
 };
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function isoToLocalInputValue(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 export default function AdminMatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +82,12 @@ export default function AdminMatchesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [resolverOpen, setResolverOpen] = useState(false);
+  const [resolverLoading, setResolverLoading] = useState(false);
+  const [resolverError, setResolverError] = useState<string | null>(null);
+  const [resolverData, setResolverData] = useState<ConflictSummary | null>(null);
+  const [resolverAction, setResolverAction] = useState<"delete" | "shift">("delete");
+  const [shiftMinutes, setShiftMinutes] = useState(60);
   const [zplsFixtures, setZplsFixtures] = useState<ZplsFixture[]>([]);
   const [zplsLoading, setZplsLoading] = useState(false);
   const [zplsSearch, setZplsSearch] = useState("");
@@ -86,7 +117,7 @@ export default function AdminMatchesPage() {
     setForm({
       homeTeam: m.homeTeam,
       awayTeam: m.awayTeam,
-      kickoff: m.kickoff.slice(0, 16),
+      kickoff: isoToLocalInputValue(m.kickoff),
       price: m.price,
       streamKey: m.streamKey,
       zplsFixtureId: m.zplsFixtureId ?? "",
@@ -101,29 +132,83 @@ export default function AdminMatchesPage() {
     setForm(emptyForm);
   }
 
+  async function openResolver(matchId: string) {
+    setResolverOpen(true);
+    setResolverLoading(true);
+    setResolverError(null);
+    setResolverData(null);
+    try {
+      const data = await api<ConflictSummary>(
+        `/api/admin/force-create-program?matchId=${encodeURIComponent(matchId)}`
+      );
+      setResolverData(data);
+    } catch (err) {
+      setResolverError((err as Error)?.message ?? "Failed to load conflicts");
+    } finally {
+      setResolverLoading(false);
+    }
+  }
+
+  async function applyResolver() {
+    if (!resolverData) return;
+    setResolverLoading(true);
+    setResolverError(null);
+    try {
+      const payload = {
+        matchId: resolverData.match.id,
+        action: resolverAction,
+        ...(resolverAction === "shift"
+          ? { shiftForwardMs: shiftMinutes * 60_000 }
+          : {}),
+      };
+      const res = await api<{ programId?: string; conflictsResolved?: number }>(
+        "/api/admin/force-create-program",
+        { method: "POST", body: payload }
+      );
+      toast.success("SPORTS program created");
+      if (typeof res.conflictsResolved === "number" && res.conflictsResolved > 0) {
+        toast.message(`Resolved ${res.conflictsResolved} conflict(s)`);
+      }
+      setResolverOpen(false);
+      setResolverData(null);
+      await loadMatches();
+    } catch (err) {
+      setResolverError((err as Error)?.message ?? "Failed to apply resolution");
+    } finally {
+      setResolverLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
       const payload = {
         ...form,
+        kickoff: new Date(form.kickoff).toISOString(),
         price: parseFloat(form.price),
         zplsFixtureId: form.zplsFixtureId || null,
       };
       if (editingId) {
-        const result = await api<{ programWarning?: string }>(`/api/admin/matches/${editingId}`, {
+        const result = await api<{ id: string; programWarning?: string }>(`/api/admin/matches/${editingId}`, {
           method: "PATCH",
           body: payload,
         });
         toast.success("Match updated");
-        if (result.programWarning) toast.warning(result.programWarning);
+        if (result.programWarning) {
+          toast.warning(result.programWarning);
+          void openResolver(result.id);
+        }
       } else {
-        const result = await api<{ programWarning?: string }>("/api/admin/matches", {
+        const result = await api<{ id: string; programWarning?: string }>("/api/admin/matches", {
           method: "POST",
           body: payload,
         });
         toast.success("Match created — program auto-linked");
-        if (result.programWarning) toast.warning(result.programWarning);
+        if (result.programWarning) {
+          toast.warning(result.programWarning);
+          void openResolver(result.id);
+        }
       }
       closeForm();
       await loadMatches();
@@ -364,6 +449,152 @@ export default function AdminMatchesPage() {
               </Button>
             </div>
           </form>
+        </motion.div>
+      )}
+
+      {/* Conflict Resolver */}
+      {resolverOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => {
+            if (!resolverLoading) {
+              setResolverOpen(false);
+              setResolverData(null);
+              setResolverError(null);
+            }
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-xl rounded-xl border border-border bg-card p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Scheduling Conflict</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  if (!resolverLoading) {
+                    setResolverOpen(false);
+                    setResolverData(null);
+                    setResolverError(null);
+                  }
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {resolverLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading conflicts...
+              </div>
+            )}
+
+            {!resolverLoading && resolverData && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  The match{" "}
+                  <span className="font-medium text-foreground">{resolverData.match.title}</span>{" "}
+                  overlaps{" "}
+                  <span className="font-medium text-foreground">{resolverData.conflicts.length}</span>{" "}
+                  program(s).
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      checked={resolverAction === "delete"}
+                      onChange={() => setResolverAction("delete")}
+                    />
+                    Delete conflicts
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      checked={resolverAction === "shift"}
+                      onChange={() => setResolverAction("shift")}
+                    />
+                    Shift conflicts
+                  </label>
+                  {resolverAction === "shift" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">by</span>
+                      <Input
+                        type="number"
+                        min="5"
+                        step="5"
+                        value={shiftMinutes}
+                        onChange={(e) =>
+                          setShiftMinutes(parseInt(e.target.value || "60", 10))
+                        }
+                        className="h-8 w-20"
+                      />
+                      <span className="text-muted-foreground">minutes</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+                  {resolverData.conflicts.map((c) => (
+                    <div
+                      key={c.id}
+                      className="border-b border-border px-3 py-2 last:border-0"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{c.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(c.startTime).toLocaleString()} →{" "}
+                            {new Date(c.endTime).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                          {c.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {resolverError && (
+              <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {resolverError}
+              </div>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                disabled={resolverLoading}
+                onClick={() => {
+                  setResolverOpen(false);
+                  setResolverData(null);
+                  setResolverError(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="gradient-accent border-0 text-white"
+                disabled={resolverLoading || !resolverData}
+                onClick={applyResolver}
+              >
+                {resolverLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Apply
+              </Button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
 

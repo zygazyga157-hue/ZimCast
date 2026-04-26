@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/errors";
 import { createProgramSafe, invalidateProgramCache, OverlapError, validateProgramInput } from "@/lib/program";
 import { redisPub } from "@/lib/redis-pubsub";
+import { catDayBounds, isNaiveLocalDateTimeString } from "@/lib/cat-time";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,10 +17,13 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (date) {
-      const start = new Date(date);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setHours(23, 59, 59, 999);
+      let start: Date;
+      let end: Date;
+      try {
+        ({ start, end } = catDayBounds(date));
+      } catch {
+        return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+      }
       where.startTime = { gte: start, lte: end };
     }
 
@@ -44,6 +48,13 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { channel, title, description, category, startTime, endTime, matchId, blackout } = body;
+
+    if (isNaiveLocalDateTimeString(startTime) || isNaiveLocalDateTimeString(endTime)) {
+      return NextResponse.json(
+        { error: "startTime/endTime must include timezone (send ISO strings ending in Z or with an offset)" },
+        { status: 400 }
+      );
+    }
 
     const input = {
       channel: channel || "ZBCTV",

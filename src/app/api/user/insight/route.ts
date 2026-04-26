@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { handleApiError } from "@/lib/errors";
+import { catHour } from "@/lib/cat-time";
 
 const CACHE_TTL_SECONDS = 10 * 60; // 10 minutes
 const LOOKBACK_DAYS = 30;
@@ -34,7 +35,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentHour = new Date().getHours();
+    const currentHour = catHour(new Date());
     const cacheKey = `user:${userId}:insight:${currentHour}`;
 
     try {
@@ -66,7 +67,7 @@ export async function GET() {
     let totalAtHour = 0;
 
     for (const a of activities) {
-      if (a.sessionStart.getHours() !== currentHour) continue;
+      if (catHour(a.sessionStart) !== currentHour) continue;
       const category =
         a.program?.category ?? (a.matchId ? "SPORTS" : null);
       if (!category) continue; // skip unattributable records
@@ -106,4 +107,3 @@ export async function GET() {
     return handleApiError(error, "User insight error");
   }
 }
-
