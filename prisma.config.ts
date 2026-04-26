@@ -10,6 +10,8 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? "",
+    // Prefer a direct (non-pooled) connection for Prisma CLI operations on Vercel Postgres.
+    // Runtime code uses `DATABASE_URL` (often pooled) via the Prisma driver adapter.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "",
   },
 });

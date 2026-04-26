@@ -80,10 +80,14 @@ export function Navbar() {
     const initial = setTimeout(() => {
       void fetchSummary();
     }, 0);
+    const interval = setInterval(() => {
+      void fetchSummary();
+    }, 30_000);
 
     return () => {
       cancelled = true;
       clearTimeout(initial);
+      clearInterval(interval);
     };
   }, []);
 

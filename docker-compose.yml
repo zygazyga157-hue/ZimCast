@@ -9,13 +9,13 @@ services:
       - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=${REDIS_URL_DOCKER:-redis://redis:6379}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - AUTH_TRUST_HOST=${AUTH_TRUST_HOST}
       - MEDIAMTX_API_URL=http://mediamtx:9997
       - STREAM_BASE_URL=http://mediamtx:8888
-      - NEXT_PUBLIC_STREAM_BASE_URL=${NEXT_PUBLIC_STREAM_BASE_URL}
+      - NEXT_PUBLIC_STREAM_BASE_URL=${NEXT_PUBLIC_STREAM_BASE_URL:-http://localhost:8888}
       - STREAM_TOKEN_SECRET=${STREAM_TOKEN_SECRET}
       - PAYNOW_INTEGRATION_ID=${PAYNOW_INTEGRATION_ID}
       - PAYNOW_INTEGRATION_KEY=${PAYNOW_INTEGRATION_KEY}
@@ -37,6 +37,7 @@ services:
       - MEDIA_S3_ACCESS_KEY_ID=${MEDIA_S3_ACCESS_KEY_ID}
       - MEDIA_S3_SECRET_ACCESS_KEY=${MEDIA_S3_SECRET_ACCESS_KEY}
       - MEDIA_PUBLIC_BASE_URL=${MEDIA_PUBLIC_BASE_URL}
+    platform: "linux/amd64"
     depends_on:
       db:
         condition: service_healthy
@@ -45,7 +46,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     ports:
       - "5433:5432"
     environment:

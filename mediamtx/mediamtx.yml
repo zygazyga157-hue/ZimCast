@@ -29,7 +29,7 @@ authMethod: http
 # run) or need to reach the host-bound Next.js server, use
 # host.docker.internal which resolves to the host from Docker Desktop.
 # Change back to `http://app:3000/...` when running via `docker compose`.
-authHTTPAddress: http://host.docker.internal:3000/api/streams/auth-hook
+authHTTPAddress: http://app:3000/api/streams/auth-hook
 # Exclude API/metrics from auth (localhost-only anyway)
 authHTTPExclude:
   - action: api
@@ -138,6 +138,18 @@ paths:
     sourceOnDemandCloseAfter: 30s
 
   match_demo_redbulltv3:
+    source: https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
+  match_demo_redbulltv4:
+    source: https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 30s
+
+  match_demo_redbulltv5:
     source: https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8
     sourceOnDemand: true
     sourceOnDemandStartTimeout: 15s

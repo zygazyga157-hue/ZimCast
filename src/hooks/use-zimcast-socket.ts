@@ -6,6 +6,10 @@ type Handler = (data: unknown) => void;
 
 /* ── Module-level singleton ─────────────────────────────── */
 
+// Default on for local/custom-server deployments; disable explicitly on Vercel with:
+// NEXT_PUBLIC_ENABLE_WS=false
+const ENABLE_WS = process.env.NEXT_PUBLIC_ENABLE_WS !== "false";
+
 let ws: WebSocket | null = null;
 let reconnectDelay = 1000;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -21,6 +25,7 @@ function getWsUrl() {
 
 function connect() {
   if (typeof window === "undefined") return;
+  if (!ENABLE_WS) return;
   if (suspended) return;
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
@@ -107,6 +112,7 @@ function ensureLifecycleHandlers() {
 }
 
 function subscribe(type: string, handler: Handler): () => void {
+  if (!ENABLE_WS) return () => {};
   if (!subs.has(type)) subs.set(type, new Set());
   subs.get(type)!.add(handler);
 
