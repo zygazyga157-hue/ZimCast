@@ -37,8 +37,12 @@ export async function PATCH(
     });
 
     // Invalidate match cache
-    const keys = await redis.keys("matches:*");
-    if (keys.length > 0) await redis.del(...keys);
+    try {
+      const keys = await redis.keys("matches:*");
+      if (keys.length > 0) await redis.del(...keys);
+    } catch {
+      // Cache failures are non-fatal.
+    }
 
     // Sync linked program when kickoff or teams change
     let programWarning: string | undefined;
@@ -79,8 +83,12 @@ export async function DELETE(
     await prisma.match.delete({ where: { id } });
 
     // Invalidate match cache
-    const keys = await redis.keys("matches:*");
-    if (keys.length > 0) await redis.del(...keys);
+    try {
+      const keys = await redis.keys("matches:*");
+      if (keys.length > 0) await redis.del(...keys);
+    } catch {
+      // Cache failures are non-fatal.
+    }
 
     return NextResponse.json({ message: "Match deleted" });
   } catch (error) {

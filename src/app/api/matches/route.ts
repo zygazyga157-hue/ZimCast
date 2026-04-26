@@ -21,9 +21,11 @@ export async function GET(req: NextRequest) {
 
     // Check cache
     const cacheKey = `matches:${dateKey}:${status || "all"}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return NextResponse.json(JSON.parse(cached));
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json(JSON.parse(cached));
+    } catch {
+      // Cache failures (including NOAUTH) are non-fatal.
     }
 
     // Fetch matches with kickoff on the target date,
@@ -113,7 +115,11 @@ export async function GET(req: NextRequest) {
     }
 
     const response = { matches: filtered };
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 30);
+    try {
+      await redis.set(cacheKey, JSON.stringify(response), "EX", 30);
+    } catch {
+      // Cache write failures are non-fatal.
+    }
 
     return NextResponse.json(response);
   } catch (error) {

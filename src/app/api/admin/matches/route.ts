@@ -34,8 +34,12 @@ export async function POST(req: NextRequest) {
     });
 
     // Invalidate match cache
-    const keys = await redis.keys("matches:*");
-    if (keys.length > 0) await redis.del(...keys);
+    try {
+      const keys = await redis.keys("matches:*");
+      if (keys.length > 0) await redis.del(...keys);
+    } catch {
+      // Cache failures are non-fatal.
+    }
 
     // Auto-create linked SPORTS program for the match
     const { programId, warning: programWarning } = await createMatchProgram(

@@ -49,17 +49,23 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const key = viewerKey(channel);
 
-    // ZADD with current timestamp as score
-    await redis.zadd(key, now, session.user.id);
-    // Set TTL on the key so it auto-cleans if no viewers heartbeat
-    await redis.expire(key, STALE_THRESHOLD_S * 3);
+    let count = 0;
+    try {
+      // ZADD with current timestamp as score
+      await redis.zadd(key, now, session.user.id);
+      // Set TTL on the key so it auto-cleans if no viewers heartbeat
+      await redis.expire(key, STALE_THRESHOLD_S * 3);
 
-    // Prune stale entries
-    const cutoff = now - STALE_THRESHOLD_S * 1000;
-    await redis.zremrangebyscore(key, "-inf", cutoff);
+      // Prune stale entries
+      const cutoff = now - STALE_THRESHOLD_S * 1000;
+      await redis.zremrangebyscore(key, "-inf", cutoff);
 
-    // Return current count
-    const count = await redis.zcard(key);
+      // Return current count
+      count = await redis.zcard(key);
+    } catch {
+      // Redis may be misconfigured/down (e.g. NOAUTH). Viewer counter is best-effort.
+      count = 0;
+    }
 
     return NextResponse.json({ channel, viewers: count });
   } catch (error) {
@@ -89,11 +95,15 @@ export async function GET(req: NextRequest) {
     const key = viewerKey(channel);
     const now = Date.now();
 
-    // Prune stale entries before counting
-    const cutoff = now - STALE_THRESHOLD_S * 1000;
-    await redis.zremrangebyscore(key, "-inf", cutoff);
-
-    const count = await redis.zcard(key);
+    let count = 0;
+    try {
+      // Prune stale entries before counting
+      const cutoff = now - STALE_THRESHOLD_S * 1000;
+      await redis.zremrangebyscore(key, "-inf", cutoff);
+      count = await redis.zcard(key);
+    } catch {
+      count = 0;
+    }
 
     return NextResponse.json({ channel, viewers: count });
   } catch (error) {
@@ -127,9 +137,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     const key = viewerKey(channel);
-    await redis.zrem(key, session.user.id);
-
-    const count = await redis.zcard(key);
+    let count = 0;
+    try {
+      await redis.zrem(key, session.user.id);
+      count = await redis.zcard(key);
+    } catch {
+      count = 0;
+    }
 
     return NextResponse.json({ channel, viewers: count });
   } catch (error) {

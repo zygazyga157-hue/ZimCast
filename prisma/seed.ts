@@ -1,7 +1,21 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "bcryptjs";
 
-const prisma = new PrismaClient();
+function createSeedPrisma() {
+  const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("Missing DIRECT_URL/DATABASE_URL for seeding.");
+  }
+
+  // This repo uses Prisma Driver Adapters (@prisma/adapter-pg) at runtime.
+  // When the client is generated for driver adapters, constructing PrismaClient()
+  // without an adapter can throw an initialization error.
+  const adapter = new PrismaPg({ connectionString });
+  return new PrismaClient({ adapter });
+}
+
+const prisma = createSeedPrisma();
 
 function envBool(name: string, fallback: boolean) {
   const v = process.env[name];
