@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/mail";
 import { handleApiError } from "@/lib/errors";
 import { randomUUID } from "crypto";
+import { getPublicOrigin } from "@/lib/public-origin";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -45,7 +46,8 @@ export async function POST() {
       data: { verifyToken: token, verifyTokenExpiry: expiry },
     });
 
-    await sendVerificationEmail(user.email, token);
+    const origin = getPublicOrigin(req);
+    await sendVerificationEmail(user.email, token, origin);
 
     return NextResponse.json({ message: "Verification email sent" });
   } catch (error) {

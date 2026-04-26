@@ -15,7 +15,11 @@ export async function sendVerificationEmail(
   token: string,
   appUrl?: string
 ) {
-  const baseUrl = appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl =
+    appUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
   const verifyUrl = `${baseUrl}/api/auth/verify?token=${token}`;
 
   await transporter.sendMail({
@@ -50,7 +54,11 @@ export async function sendPasswordResetEmail(
   token: string,
   appUrl?: string
 ) {
-  const baseUrl = appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl =
+    appUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   await transporter.sendMail({

@@ -133,6 +133,8 @@ export default auth((req) => {
     "/api/zpls",
     "/login",
     "/register",
+    "/forgot-password",
+    "/reset-password",
     "/sports",
     "/live-tv",
     "/",
@@ -153,7 +155,8 @@ export default auth((req) => {
       return applySecurityHeaders(res, nonce, reqHost, isHttps);
     }
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    // Preserve query params (e.g. reset tokens / verified flag) so flows work end-to-end.
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname + req.nextUrl.search);
     const res = NextResponse.redirect(loginUrl);
     return applySecurityHeaders(res, nonce, reqHost, isHttps);
   }
